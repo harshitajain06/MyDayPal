@@ -277,9 +277,9 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
-  logoContainer: { alignItems: 'center', marginBottom: 2 },
+  logoContainer: { alignItems: 'center' },
   logo: { width: 100, height: 100 },
-  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
+  title: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', marginBottom: 16 },
   tabContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   },
   tab: { flex: 1, paddingVertical: 12, alignItems: 'center' },
   activeTabBackground: { backgroundColor: '#e6f0ff' },
-  tabText: { fontSize: 14, color: '#6c757d', fontWeight: '600' },
+  tabText: { fontSize: 12, color: '#6c757d', fontWeight: '600' },
   activeTabText: { color: '#007bff' },
   label: { marginBottom: 4, fontWeight: '500', color: '#212529' },
   form: { marginBottom: 10 },
@@ -306,16 +306,16 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#007bff',
-    padding: 14,
+    padding: 12,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 8,
   },
   buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   roleContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 8,
     gap: 12,
   },
   roleOption: {
@@ -327,5 +327,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   selectedRole: { backgroundColor: '#e6f0ff', borderColor: '#007bff' },
-  roleText: { fontSize: 14, fontWeight: '500' },
+  roleText: { fontSize: 12, fontWeight: '500' },
 });
