@@ -12,7 +12,7 @@ export default function ChildMode() {
     }
   }, [tasks]);
 
-  if (tasks.length === 0) {
+  if (!tasks || tasks.length === 0) {
     return (
       <View style={styles.container}>
         <Text>No tasks yet</Text>

@@ -1,66 +1,56 @@
-import { useEffect, useState, useCallback } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+// hooks/useTasks.js
+import { useState, useEffect } from "react";
+import { db, auth } from "../config/firebase";
 import {
   collection,
   addDoc,
-  getDocs,
-  updateDoc,
   deleteDoc,
   doc,
+  updateDoc,
   onSnapshot,
+  query,
+  where,
 } from "firebase/firestore";
-import { db } from "../config/firebase";
-import { auth } from "../config/firebase";
-
-const STORAGE_KEY = "@tasks_cache";
 
 export default function useTasks() {
   const [tasks, setTasks] = useState([]);
-  const user = auth.currentUser;
 
-  // Load from cache first
   useEffect(() => {
-    (async () => {
-      const cached = await AsyncStorage.getItem(STORAGE_KEY);
-      if (cached) setTasks(JSON.parse(cached));
-    })();
-  }, []);
+    if (!auth.currentUser) return;
 
-  // Subscribe to Firestore
-  useEffect(() => {
-    if (!user) return;
+    // Listen for tasks owned by this user
+    const q = query(
+      collection(db, "tasks"),
+      where("userId", "==", auth.currentUser.uid)
+    );
 
-    const q = collection(db, "users", user.uid, "tasks");
-    const unsub = onSnapshot(q, async (snapshot) => {
-      const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setTasks(data);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const newTasks = snapshot.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      }));
+      setTasks(newTasks);
     });
 
-    return () => unsub();
-  }, [user]);
+    return () => unsubscribe();
+  }, []);
 
-  const addTask = useCallback(async (task) => {
-    if (!user) return;
-    const docRef = await addDoc(collection(db, "users", user.uid, "tasks"), task);
-    setTasks((prev) => [...prev, { id: docRef.id, ...task }]);
-  }, [user]);
+  const addTask = async (task) => {
+    if (!auth.currentUser) return;
+    await addDoc(collection(db, "tasks"), {
+      ...task,
+      userId: auth.currentUser.uid,
+      createdAt: Date.now(),
+    });
+  };
 
-  const updateTask = useCallback(async (id, updates) => {
-    if (!user) return;
-    const ref = doc(db, "users", user.uid, "tasks", id);
-    await updateDoc(ref, updates);
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
-    );
-  }, [user]);
+  const deleteTask = async (id) => {
+    await deleteDoc(doc(db, "tasks", id));
+  };
 
-  const deleteTask = useCallback(async (id) => {
-    if (!user) return;
-    const ref = doc(db, "users", user.uid, "tasks", id);
-    await deleteDoc(ref);
-    setTasks((prev) => prev.filter((t) => t.id !== id));
-  }, [user]);
+  const updateTask = async (id, updates) => {
+    await updateDoc(doc(db, "tasks", id), updates);
+  };
 
-  return { tasks, addTask, updateTask, deleteTask };
+  return { tasks, addTask, deleteTask, updateTask };
 }

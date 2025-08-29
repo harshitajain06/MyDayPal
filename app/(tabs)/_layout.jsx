@@ -14,6 +14,7 @@ import ProgressScreen from "./ProgressScreen";
 import TeacherDashboard from "./TeacherDashboard";
 import ScheduleBuilder from "./ScheduleBuilder";
 import SettingsScreen from "./SettingsScreen";
+import InviteScreen from "./InviteScreen";
 import LoginRegister from "./index";
 
 import { Colors } from "../../constants/Colors";
@@ -147,14 +148,14 @@ const DrawerNavigator = ({ role }) => {
         options={{ title: "Home" }}
       />
 
-      {/* ✅ Settings accessible via drawer */}
+      {/* ✅ Invite Screen accessible via drawer */}
       <Drawer.Screen
-        name="Settings"
-        component={SettingsScreen}
+        name="InviteScreen"
+        component={InviteScreen}
         options={{
-          title: "Settings",
+          title: "Invite",
           drawerIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
+            <Ionicons name="person-add-outline" size={size} color={color} />
           ),
         }}
       />
