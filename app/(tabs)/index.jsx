@@ -306,12 +306,12 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#007bff',
-    padding: 12,
+    padding: 10,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,
   },
-  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
   roleContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
