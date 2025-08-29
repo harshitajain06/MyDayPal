@@ -190,25 +190,25 @@ export default function AuthPage() {
           </View>
         ) : (
           <View style={styles.form}>
-            <Text style={styles.label}>Full Name</Text>
+            {/* <Text style={styles.label}>Full Name</Text> */}
             <TextInput
               placeholder="Enter your name"
               style={styles.input}
               value={registerName}
               onChangeText={setRegisterName}
             />
-            <Text style={styles.label}>Email</Text>
+            {/* <Text style={styles.label}>Email</Text> */}
             <TextInput
-              placeholder="name@example.com"
+              placeholder="Enter your email"
               style={styles.input}
               value={registerEmail}
               onChangeText={setRegisterEmail}
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            <Text style={styles.label}>Password</Text>
+            {/* <Text style={styles.label}>Password</Text> */}
             <TextInput
-              placeholder="••••••••"
+              placeholder="Enter your password"
               secureTextEntry
               style={styles.input}
               value={registerPassword}
