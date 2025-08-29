@@ -190,14 +190,14 @@ export default function AuthPage() {
           </View>
         ) : (
           <View style={styles.form}>
-            {/* <Text style={styles.label}>Full Name</Text> */}
+            <Text style={styles.label}>Full Name</Text>
             <TextInput
               placeholder="Enter your name"
               style={styles.input}
               value={registerName}
               onChangeText={setRegisterName}
             />
-            {/* <Text style={styles.label}>Email</Text> */}
+            <Text style={styles.label}>Email</Text>
             <TextInput
               placeholder="Enter your email"
               style={styles.input}
@@ -206,7 +206,7 @@ export default function AuthPage() {
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            {/* <Text style={styles.label}>Password</Text> */}
+            <Text style={styles.label}>Password</Text>
             <TextInput
               placeholder="Enter your password"
               secureTextEntry
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingVertical: 10,
+    paddingVertical: 5,
     paddingHorizontal: 16,
   },
   card: {
@@ -290,9 +290,9 @@ const styles = StyleSheet.create({
   },
   tab: { flex: 1, paddingVertical: 12, alignItems: 'center' },
   activeTabBackground: { backgroundColor: '#e6f0ff' },
-  tabText: { fontSize: 16, color: '#6c757d', fontWeight: '600' },
+  tabText: { fontSize: 14, color: '#6c757d', fontWeight: '600' },
   activeTabText: { color: '#007bff' },
-  label: { marginBottom: 6, fontWeight: '500', color: '#212529' },
+  label: { marginBottom: 4, fontWeight: '500', color: '#212529' },
   form: { marginBottom: 10 },
   input: {
     backgroundColor: '#fff',
@@ -301,7 +301,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#ced4da',
-    fontSize: 16,
+    color: 'grey',
+    fontSize: 14,
   },
   button: {
     backgroundColor: '#007bff',
