@@ -3,7 +3,7 @@ import {
     collection,
     deleteDoc,
     doc,
-    getDocs,
+    getDoc,
     getFirestore,
     onSnapshot,
     orderBy,
@@ -115,15 +115,14 @@ export default function useSchedules() {
   const getScheduleById = async (scheduleId) => {
     try {
       const scheduleRef = doc(db, "schedules", scheduleId);
-      const scheduleSnap = await getDocs(query(collection(db, "schedules"), where("__name__", "==", scheduleId)));
+      const scheduleSnap = await getDoc(scheduleRef);
       
-      if (!scheduleSnap.empty) {
-        const scheduleDoc = scheduleSnap.docs[0];
+      if (scheduleSnap.exists()) {
         return {
-          id: scheduleDoc.id,
-          ...scheduleDoc.data(),
-          createdAt: scheduleDoc.data().createdAt?.toDate?.() || new Date(),
-          updatedAt: scheduleDoc.data().updatedAt?.toDate?.() || new Date(),
+          id: scheduleSnap.id,
+          ...scheduleSnap.data(),
+          createdAt: scheduleSnap.data().createdAt?.toDate?.() || new Date(),
+          updatedAt: scheduleSnap.data().updatedAt?.toDate?.() || new Date(),
         };
       }
       return null;

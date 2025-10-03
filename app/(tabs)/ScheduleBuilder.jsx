@@ -17,8 +17,8 @@ import useUser from "../../hooks/useUser";
 
 export default function ScheduleBuilder() {
   const { userData, loading: userLoading } = useUser();
-  const { createSchedule, updateSchedule, getScheduleById } = useSchedules();
-  const { navigationData, clearNavigationData } = useNavigationData();
+  const { createSchedule, updateSchedule, deleteSchedule, getScheduleById } = useSchedules();
+  const { navigationData, setRoutineData, clearNavigationData } = useNavigationData();
   const route = useRoute();
   const { routine, isEditing, scheduleId: existingScheduleId, existingSchedule, routineName } = route.params || {};
   
@@ -38,26 +38,11 @@ export default function ScheduleBuilder() {
   const [scheduleName, setScheduleName] = useState(
     currentRoutineName || currentExistingSchedule?.name || currentRoutine?.scheduleName || "Morning"
   );
-  const [steps, setSteps] = useState(
-    currentExistingSchedule?.steps || currentRoutine?.predefinedSteps || [
-      {
-        id: 1,
-        name: "Wake up",
-        icon: "☀️",
-        duration: "02:00",
-        stepNumber: 1,
-        notes: ""
-      },
-      {
-        id: 2,
-        name: "Brush teeth",
-        icon: "🦷",
-        duration: "03:00", 
-        stepNumber: 2,
-        notes: ""
-      }
-    ]
-  );
+  const [steps, setSteps] = useState([]);
+  const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedStep, setSelectedStep] = useState(null);
   const [newStepName, setNewStepName] = useState("");
   const [newStepDuration, setNewStepDuration] = useState("2");
@@ -67,9 +52,112 @@ export default function ScheduleBuilder() {
   const [scheduleId, setScheduleId] = useState(existingScheduleId || null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
 
+  // Load schedule data from Firebase when editing existing schedule
+  useEffect(() => {
+    if (isInitialized) return; // Prevent re-initialization
+    
+    const loadScheduleData = async () => {
+      // If we have an existing schedule ID, load it from Firebase
+      if (existingScheduleId && !currentExistingSchedule) {
+        setIsLoadingSchedule(true);
+        try {
+          console.log("Loading schedule from Firebase:", existingScheduleId);
+          const scheduleData = await getScheduleById(existingScheduleId);
+          if (scheduleData) {
+            console.log("Loaded schedule data:", scheduleData);
+            setScheduleName(scheduleData.name || "Morning");
+            setSteps(Array.isArray(scheduleData.steps) ? scheduleData.steps : []);
+            setScheduleId(existingScheduleId);
+          } else {
+            console.log("No schedule found, using defaults");
+            setSteps([
+              {
+                id: 1,
+                name: "Wake up",
+                icon: "☀️",
+                duration: "02:00",
+                stepNumber: 1,
+                notes: ""
+              },
+              {
+                id: 2,
+                name: "Brush teeth",
+                icon: "🦷",
+                duration: "03:00", 
+                stepNumber: 2,
+                notes: ""
+              }
+            ]);
+          }
+        } catch (error) {
+          console.error("Error loading schedule:", error);
+          // Fall back to default steps
+          setSteps([
+            {
+              id: 1,
+              name: "Wake up",
+              icon: "☀️",
+              duration: "02:00",
+              stepNumber: 1,
+              notes: ""
+            },
+            {
+              id: 2,
+              name: "Brush teeth",
+              icon: "🦷",
+              duration: "03:00", 
+              stepNumber: 2,
+              notes: ""
+            }
+          ]);
+        } finally {
+          setIsLoadingSchedule(false);
+        }
+      } else if (currentExistingSchedule?.steps) {
+        // Use data from navigation context
+        console.log("Using schedule data from navigation context:", currentExistingSchedule);
+        setScheduleName(currentExistingSchedule.name || "Morning");
+        setSteps(Array.isArray(currentExistingSchedule.steps) ? currentExistingSchedule.steps : []);
+        if (currentExistingSchedule.id) {
+          setScheduleId(currentExistingSchedule.id);
+        }
+      } else if (currentRoutine?.predefinedSteps) {
+        // Use predefined steps from routine
+        console.log("Using predefined steps from routine:", currentRoutine);
+        setScheduleName(currentRoutine.scheduleName || "Morning");
+        setSteps(Array.isArray(currentRoutine.predefinedSteps) ? currentRoutine.predefinedSteps : []);
+      } else {
+        // Default steps for new schedule
+        console.log("Using default steps for new schedule");
+        setSteps([
+          {
+            id: 1,
+            name: "Wake up",
+            icon: "☀️",
+            duration: "02:00",
+            stepNumber: 1,
+            notes: ""
+          },
+          {
+            id: 2,
+            name: "Brush teeth",
+            icon: "🦷",
+            duration: "03:00", 
+            stepNumber: 2,
+            notes: ""
+          }
+        ]);
+      }
+      
+      setIsInitialized(true);
+    };
+
+    loadScheduleData();
+  }, [existingScheduleId, currentExistingSchedule, currentRoutine, isInitialized]);
+
   // Set initial selected step when steps are loaded
   useEffect(() => {
-    if (steps.length > 0 && !selectedStep) {
+    if ((steps || []).length > 0 && !selectedStep) {
       setSelectedStep(steps[0]);
     }
   }, [steps, selectedStep]);
@@ -78,16 +166,54 @@ export default function ScheduleBuilder() {
   useEffect(() => {
     if (navigationData) {
       console.log("Navigation data changed, updating state:", navigationData);
-      const newSteps = navigationData.routine?.predefinedSteps || navigationData.routine?.steps || [];
-      setScheduleName(navigationData.routineName || navigationData.routine?.scheduleName || "Morning");
-      setSteps(newSteps);
       
-      // Set the first step as selected if there are steps and no current selection
-      if (newSteps.length > 0 && !selectedStep) {
-        setSelectedStep(newSteps[0]);
+      // Reset initialization to allow re-processing
+      setIsInitialized(false);
+      
+      // Only update steps if we don't already have a scheduleId (to avoid overriding saved data)
+      if (!scheduleId) {
+        const newSteps = navigationData.routine?.predefinedSteps || navigationData.routine?.steps || [];
+        setScheduleName(navigationData.routineName || navigationData.routine?.scheduleName || "Morning");
+        setSteps(Array.isArray(newSteps) ? newSteps : []);
+        
+        // Set the first step as selected if there are steps and no current selection
+        if (newSteps.length > 0 && !selectedStep) {
+          setSelectedStep(newSteps[0]);
+        }
       }
+      
+      // If this is an existing schedule with an ID, set it
+      if (navigationData.routine?.id) {
+        setScheduleId(navigationData.routine.id);
+      } else {
+        // Reset schedule ID for new routines
+        setScheduleId(null);
+      }
+      
+      setIsInitialized(true);
     }
-  }, [navigationData, selectedStep]);
+  }, [navigationData, selectedStep, scheduleId]);
+
+  // Reload schedule data when scheduleId changes (after adding steps)
+  useEffect(() => {
+    const reloadScheduleData = async () => {
+      if (scheduleId && typeof scheduleId === 'string') {
+        console.log("Reloading schedule data for ID:", scheduleId);
+        try {
+          const scheduleData = await getScheduleById(scheduleId);
+          if (scheduleData) {
+            console.log("Reloaded schedule data:", scheduleData);
+            setSteps(Array.isArray(scheduleData.steps) ? scheduleData.steps : []);
+            setScheduleName(scheduleData.name || "Morning");
+          }
+        } catch (error) {
+          console.error("Error reloading schedule data:", error);
+        }
+      }
+    };
+
+    reloadScheduleData();
+  }, [scheduleId, getScheduleById]);
 
   // Cleanup navigation data when component unmounts
   useEffect(() => {
@@ -114,13 +240,16 @@ export default function ScheduleBuilder() {
       name: newStepName,
       icon: "⭐",
       duration: `${newStepDuration.padStart(2, '0')}:00`,
-      stepNumber: steps.length + 1,
+      stepNumber: (steps || []).length + 1,
       notes: newStepNotes
     };
     
-    const updatedSteps = [...steps, newStep];
+    const updatedSteps = [...(steps || []), newStep];
     setSteps(updatedSteps);
     setSelectedStep(newStep); // Select the newly created step
+    
+    console.log("Added new step:", newStep);
+    console.log("Updated steps array after adding:", updatedSteps);
     setNewStepName("");
     setNewStepDuration("2");
     setNewStepNotes("");
@@ -129,27 +258,37 @@ export default function ScheduleBuilder() {
     // Auto-save to Firebase
     setIsAutoSaving(true);
     try {
-      if (scheduleId || existingScheduleId) {
+      const currentScheduleId = scheduleId || existingScheduleId;
+      if (currentScheduleId && typeof currentScheduleId === 'string') {
         // Update existing schedule
-        console.log("Updating existing schedule:", scheduleId || existingScheduleId);
-        await updateSchedule(scheduleId || existingScheduleId, {
+        console.log("Updating existing schedule:", currentScheduleId);
+        await updateSchedule(currentScheduleId, {
           name: scheduleName,
           steps: updatedSteps,
           isPublished: false, // Keep as draft when adding steps
-          routineType: routine?.title || "Custom"
+          routineType: currentRoutine?.title || currentRoutine?.scheduleName || "Custom"
         });
         console.log("Schedule updated successfully");
       } else {
         // Create new schedule if none exists
-        console.log("Creating new schedule with steps:", updatedSteps.length);
+        const routineType = currentRoutine?.title || currentRoutine?.scheduleName || "Custom";
+        console.log("Creating new schedule with steps:", updatedSteps.length, "routineType:", routineType);
         const newSchedule = await createSchedule({
           name: scheduleName,
           steps: updatedSteps,
           isPublished: false, // Keep as draft when adding steps
-          routineType: routine?.title || "Custom"
+          routineType: routineType
         });
         console.log("New schedule created:", newSchedule.id);
         setScheduleId(newSchedule.id);
+        
+        // Also update the navigation data with the new schedule ID
+        if (navigationData) {
+          setRoutineData({
+            ...navigationData.routine,
+            id: newSchedule.id
+          }, navigationData.isEditing, navigationData.routineName);
+        }
       }
     } catch (error) {
       console.error("Error auto-saving step:", error);
@@ -177,7 +316,7 @@ export default function ScheduleBuilder() {
       return;
     }
 
-    if (steps.length === 0) {
+    if ((steps || []).length === 0) {
       Alert.alert("Error", "Please add at least one step to the schedule.");
       return;
     }
@@ -210,9 +349,9 @@ export default function ScheduleBuilder() {
     }
   };
 
-  const saveDraft = async () => {
+  const handleUpdateSchedule = async () => {
     if (!userData) {
-      Alert.alert("Error", "You must be logged in to save a draft.");
+      Alert.alert("Error", "You must be logged in to update a schedule.");
       return;
     }
 
@@ -221,32 +360,62 @@ export default function ScheduleBuilder() {
       return;
     }
 
+    if ((steps || []).length === 0) {
+      Alert.alert("Error", "Please add at least one step to the schedule.");
+      return;
+    }
+
+    const currentScheduleId = scheduleId || existingScheduleId;
+    if (!currentScheduleId || typeof currentScheduleId !== 'string') {
+      Alert.alert("Error", "No schedule ID found. Please create a new schedule first.");
+      return;
+    }
+
     try {
       const scheduleData = {
         name: scheduleName.trim(),
         steps: steps,
-        isPublished: false,
+        isPublished: false, // Keep as draft when updating
         routineType: routine?.title || "Custom"
       };
 
-      if (scheduleId || existingScheduleId) {
-        // Update existing draft
-        await updateSchedule(scheduleId || existingScheduleId, scheduleData);
-        Alert.alert("Success", "Draft saved successfully!");
-      } else {
-        // Create new draft
-        const newSchedule = await createSchedule(scheduleData);
-        setScheduleId(newSchedule.id);
-        Alert.alert("Success", "Draft saved successfully!");
-      }
+      await updateSchedule(currentScheduleId, scheduleData);
+      Alert.alert("Success", "Schedule updated successfully!");
     } catch (error) {
-      console.error("Error saving draft:", error);
-      Alert.alert("Error", "Failed to save draft. Please try again.");
+      console.error("Error updating schedule:", error);
+      Alert.alert("Error", "Failed to update schedule. Please try again.");
+    }
+  };
+
+  const handleDeleteSchedule = async () => {
+    if (!userData) {
+      Alert.alert("Error", "You must be logged in to delete a schedule.");
+      return;
+    }
+
+    const currentScheduleId = scheduleId || existingScheduleId;
+    if (!currentScheduleId || typeof currentScheduleId !== 'string') {
+      Alert.alert("Error", "No schedule ID found. Cannot delete schedule.");
+      return;
+    }
+
+    try {
+      await deleteSchedule(currentScheduleId);
+      Alert.alert("Success", "Schedule deleted successfully!");
+      // Navigate back or reset the form
+      setSteps([]);
+      setScheduleName("Morning");
+      setScheduleId(null);
+      setSelectedStep(null);
+      setShowDeleteModal(false);
+    } catch (error) {
+      console.error("Error deleting schedule:", error);
+      Alert.alert("Error", "Failed to delete schedule. Please try again.");
     }
   };
 
   const deleteStep = async (stepId) => {
-    const updatedSteps = steps.filter(step => step.id !== stepId);
+    const updatedSteps = (steps || []).filter(step => step.id !== stepId);
     const renumberedSteps = updatedSteps.map((step, index) => ({
       ...step,
       stepNumber: index + 1
@@ -258,13 +427,14 @@ export default function ScheduleBuilder() {
 
     // Auto-save to Firebase
     try {
-      if (scheduleId || existingScheduleId) {
+      const currentScheduleId = scheduleId || existingScheduleId;
+      if (currentScheduleId && typeof currentScheduleId === 'string') {
         // Update existing schedule
-        await updateSchedule(scheduleId || existingScheduleId, {
+        await updateSchedule(currentScheduleId, {
           name: scheduleName,
           steps: renumberedSteps,
           isPublished: false, // Keep as draft when deleting steps
-          routineType: routine?.title || "Custom"
+          routineType: currentRoutine?.title || currentRoutine?.scheduleName || "Custom"
         });
       } else if (renumberedSteps.length > 0) {
         // Create new schedule if none exists and there are still steps
@@ -272,9 +442,17 @@ export default function ScheduleBuilder() {
           name: scheduleName,
           steps: renumberedSteps,
           isPublished: false, // Keep as draft when deleting steps
-          routineType: routine?.title || "Custom"
+          routineType: currentRoutine?.title || currentRoutine?.scheduleName || "Custom"
         });
         setScheduleId(newSchedule.id);
+        
+        // Also update the navigation data with the new schedule ID
+        if (navigationData) {
+          setRoutineData({
+            ...navigationData.routine,
+            id: newSchedule.id
+          }, navigationData.isEditing, navigationData.routineName);
+        }
       }
     } catch (error) {
       console.error("Error auto-saving step deletion:", error);
@@ -287,20 +465,24 @@ export default function ScheduleBuilder() {
     
     const updatedStep = { ...selectedStep, [field]: value };
     setSelectedStep(updatedStep);
-    const updatedSteps = steps.map(step => 
+    const updatedSteps = (steps || []).map(step => 
       step.id === selectedStep?.id ? updatedStep : step
     );
     setSteps(updatedSteps);
+    
+    console.log("Updated step:", updatedStep);
+    console.log("Updated steps array:", updatedSteps);
 
     // Auto-save to Firebase
     try {
-      if (scheduleId || existingScheduleId) {
+      const currentScheduleId = scheduleId || existingScheduleId;
+      if (currentScheduleId && typeof currentScheduleId === 'string') {
         // Update existing schedule
-        await updateSchedule(scheduleId || existingScheduleId, {
+        await updateSchedule(currentScheduleId, {
           name: scheduleName,
           steps: updatedSteps,
           isPublished: false, // Keep as draft when editing steps
-          routineType: routine?.title || "Custom"
+          routineType: currentRoutine?.title || currentRoutine?.scheduleName || "Custom"
         });
       } else {
         // Create new schedule if none exists
@@ -308,9 +490,17 @@ export default function ScheduleBuilder() {
           name: scheduleName,
           steps: updatedSteps,
           isPublished: false, // Keep as draft when editing steps
-          routineType: routine?.title || "Custom"
+          routineType: currentRoutine?.title || currentRoutine?.scheduleName || "Custom"
         });
         setScheduleId(newSchedule.id);
+        
+        // Also update the navigation data with the new schedule ID
+        if (navigationData) {
+          setRoutineData({
+            ...navigationData.routine,
+            id: newSchedule.id
+          }, navigationData.isEditing, navigationData.routineName);
+        }
       }
     } catch (error) {
       console.error("Error auto-saving step update:", error);
@@ -318,12 +508,14 @@ export default function ScheduleBuilder() {
     }
   };
 
-  if (userLoading) {
+  if (userLoading || isLoadingSchedule) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#20B2AA" />
-          <Text style={styles.loadingText}>Loading...</Text>
+          <Text style={styles.loadingText}>
+            {isLoadingSchedule ? "Loading schedule..." : "Loading..."}
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -372,17 +564,6 @@ export default function ScheduleBuilder() {
           </View>
           <View style={styles.actionButtons}>
             <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={saveDraft}
-            >
-              <Text style={styles.actionButtonIcon}>📄</Text>
-              <Text style={styles.actionButtonText}>Save Draft</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <Text style={styles.actionButtonIcon}>👁️</Text>
-              <Text style={styles.actionButtonText}>Preview</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
               style={[styles.actionButton, styles.publishButton, isPublishing && styles.disabledButton]}
               onPress={publishSchedule}
               disabled={isPublishing}
@@ -397,29 +578,25 @@ export default function ScheduleBuilder() {
               </Text>
             </TouchableOpacity>
             
-            {/* Debug button - remove in production */}
-            <TouchableOpacity 
-              style={[styles.actionButton, { backgroundColor: "#ff6b6b" }]}
-              onPress={async () => {
-                try {
-                  console.log("Testing schedule creation...");
-                  const testSchedule = await createSchedule({
-                    name: "Test Schedule",
-                    steps: [{ id: 1, name: "Test Step", icon: "⭐", duration: "01:00", stepNumber: 1, notes: "" }],
-                    isPublished: false,
-                    routineType: "Custom"
-                  });
-                  console.log("Test schedule created:", testSchedule);
-                  Alert.alert("Success", `Test schedule created with ID: ${testSchedule.id}`);
-                } catch (error) {
-                  console.error("Test schedule creation failed:", error);
-                  Alert.alert("Error", `Test failed: ${error.message}`);
-                }
-              }}
-            >
-              <Text style={styles.actionButtonIcon}>🧪</Text>
-              <Text style={styles.actionButtonText}>Test</Text>
-            </TouchableOpacity>
+            {(scheduleId || existingScheduleId) && (
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.updateButton]}
+                onPress={() => setShowUpdateModal(true)}
+              >
+                <Text style={styles.actionButtonIcon}>✏️</Text>
+                <Text style={[styles.actionButtonText, styles.updateButtonText]}>Update</Text>
+              </TouchableOpacity>
+            )}
+            
+            {(scheduleId || existingScheduleId) && (
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.deleteButton]}
+                onPress={() => setShowDeleteModal(true)}
+              >
+                <Text style={styles.actionButtonIcon}>🗑️</Text>
+                <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Delete</Text>
+              </TouchableOpacity>
+            )}
           </View>
       </View>
 
@@ -427,11 +604,11 @@ export default function ScheduleBuilder() {
           {/* Steps Panel */}
           <View style={styles.stepsPanel}>
             <View style={styles.panelHeader}>
-              <Text style={styles.panelTitle}>Steps ({steps.length})</Text>
+              <Text style={styles.panelTitle}>Steps ({(steps || []).length})</Text>
             </View>
             
             <ScrollView style={styles.stepsList}>
-              {steps.map((step) => (
+              {(steps || []).map((step) => (
                 <TouchableOpacity
                   key={step.id}
                   style={[
@@ -605,9 +782,49 @@ export default function ScheduleBuilder() {
       />
     </View>
 
-                {/* Test Step Button */}
-                <TouchableOpacity style={styles.testStepButton}>
-                  <Text style={styles.testStepButtonText}>▷ Test This Step</Text>
+                {/* Submit Step Button */}
+                <TouchableOpacity 
+                  style={[styles.testStepButton, isAutoSaving && styles.disabledButton]}
+                  onPress={async () => {
+                    if (!selectedStep) return;
+                    
+                    try {
+                      // Force save the current step changes
+                      const updatedSteps = (steps || []).map(step => 
+                        step.id === selectedStep?.id ? selectedStep : step
+                      );
+                      
+                      const currentScheduleId = scheduleId || existingScheduleId;
+                      if (currentScheduleId && typeof currentScheduleId === 'string') {
+                        // Update existing schedule
+                        await updateSchedule(currentScheduleId, {
+                          name: scheduleName,
+                          steps: updatedSteps,
+                          isPublished: false,
+                          routineType: currentRoutine?.title || currentRoutine?.scheduleName || "Custom"
+                        });
+                      } else {
+                        // Create new schedule if none exists
+                        const newSchedule = await createSchedule({
+                          name: scheduleName,
+                          steps: updatedSteps,
+                          isPublished: false,
+                          routineType: currentRoutine?.title || currentRoutine?.scheduleName || "Custom"
+                        });
+                        setScheduleId(newSchedule.id);
+                      }
+                      
+                      Alert.alert("Success", "Step changes have been saved successfully!");
+                    } catch (error) {
+                      console.error("Error saving step:", error);
+                      Alert.alert("Error", "Failed to save step changes. Please try again.");
+                    }
+                  }}
+                  disabled={isAutoSaving}
+                >
+                  <Text style={styles.testStepButtonText}>
+                    {isAutoSaving ? "Saving..." : "✓ Submit Step"}
+                  </Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -620,6 +837,81 @@ export default function ScheduleBuilder() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Update Confirmation Modal */}
+      {showUpdateModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Update Schedule</Text>
+              <TouchableOpacity 
+                style={styles.modalCloseButton}
+                onPress={() => setShowUpdateModal(false)}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalMessage}>
+                Are you sure you want to update this schedule? All changes will be saved.
+              </Text>
+            </View>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={() => setShowUpdateModal(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalConfirmButton]}
+                onPress={async () => {
+                  await handleUpdateSchedule();
+                  setShowUpdateModal(false);
+                }}
+              >
+                <Text style={styles.modalConfirmText}>Update</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Delete Schedule</Text>
+              <TouchableOpacity 
+                style={styles.modalCloseButton}
+                onPress={() => setShowDeleteModal(false)}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalMessage}>
+                Are you sure you want to delete this schedule? This action cannot be undone.
+              </Text>
+            </View>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={() => setShowDeleteModal(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalDeleteButton]}
+                onPress={handleDeleteSchedule}
+              >
+                <Text style={styles.modalDeleteText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -721,6 +1013,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#007bff",
     borderColor: "#007bff",
   },
+  updateButton: {
+    backgroundColor: "#28a745",
+    borderColor: "#28a745",
+  },
+  deleteButton: {
+    backgroundColor: "#dc3545",
+    borderColor: "#dc3545",
+  },
   actionButtonIcon: {
     fontSize: 16,
     marginRight: 8,
@@ -731,6 +1031,12 @@ const styles = StyleSheet.create({
     color: "#2c3e50",
   },
   publishButtonText: {
+    color: "#fff",
+  },
+  updateButtonText: {
+    color: "#fff",
+  },
+  deleteButtonText: {
     color: "#fff",
   },
   disabledButton: {
@@ -1011,5 +1317,101 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#6c757d",
     textAlign: "center",
+  },
+  // Modal Styles
+  modalOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  modalContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 0,
+    margin: 20,
+    minWidth: 300,
+    maxWidth: 400,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e9ecef",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#2c3e50",
+  },
+  modalCloseButton: {
+    padding: 5,
+  },
+  modalCloseText: {
+    fontSize: 20,
+    color: "#6c757d",
+    fontWeight: "bold",
+  },
+  modalContent: {
+    padding: 20,
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: "#6c757d",
+    lineHeight: 24,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    padding: 20,
+    gap: 10,
+  },
+  modalButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    minWidth: 80,
+    alignItems: "center",
+  },
+  modalCancelButton: {
+    backgroundColor: "#f8f9fa",
+    borderWidth: 1,
+    borderColor: "#dee2e6",
+  },
+  modalConfirmButton: {
+    backgroundColor: "#28a745",
+  },
+  modalDeleteButton: {
+    backgroundColor: "#dc3545",
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#6c757d",
+  },
+  modalConfirmText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#fff",
+  },
+  modalDeleteText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#fff",
   },
 });

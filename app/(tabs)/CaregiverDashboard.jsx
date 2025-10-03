@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     SafeAreaView,
@@ -17,6 +17,57 @@ export default function CaregiverDashboard({ navigation }) {
   const { schedules, loading: schedulesLoading, getPublishedSchedules, getDraftSchedules } = useSchedules();
   const { setRoutineData } = useNavigationData();
   const userName = userData?.name || "User";
+  const [displaySchedules, setDisplaySchedules] = useState([]);
+
+  // Update display schedules when schedules change
+  useEffect(() => {
+    console.log("Schedules changed, re-rendering dashboard");
+    
+    // Get schedules from Firebase
+    const publishedSchedules = getPublishedSchedules();
+    const draftSchedules = getDraftSchedules();
+    const allFirebaseSchedules = [...publishedSchedules, ...draftSchedules];
+    
+    console.log("CaregiverDashboard - All schedules:", schedules);
+    console.log("Published schedules:", publishedSchedules);
+    console.log("Draft schedules:", draftSchedules);
+    console.log("All Firebase schedules:", allFirebaseSchedules);
+    
+    // Calculate display schedules
+    const predefinedRoutines = scheduleCards;
+    const firebaseSchedules = allFirebaseSchedules.map(schedule => {
+      console.log(`Schedule ${schedule.name}:`, {
+        id: schedule.id,
+        steps: schedule.steps?.length || 0,
+        isPublished: schedule.isPublished,
+        stepsData: schedule.steps
+      });
+      
+      return {
+        id: `firebase_${schedule.id}`,
+        title: schedule.name,
+        icon: getRoutineIcon(schedule.routineType),
+        steps: `${schedule.steps?.length || 0} steps`,
+        color: getRoutineColor(schedule.routineType),
+        scheduleName: schedule.name,
+        predefinedSteps: schedule.steps || [],
+        isFirebaseSchedule: true,
+        firebaseData: schedule,
+        isDraft: !schedule.isPublished
+      };
+    });
+    
+    // Show all Firebase schedules first, then predefined routines that don't have Firebase equivalents
+    const predefinedRoutinesWithoutFirebase = predefinedRoutines.filter(routine => {
+      return !allFirebaseSchedules.some(schedule => 
+        schedule.routineType === routine.title || schedule.name === routine.title
+      );
+    });
+    
+    const finalSchedules = [...firebaseSchedules, ...predefinedRoutinesWithoutFirebase];
+    console.log("Final display schedules:", finalSchedules);
+    setDisplaySchedules(finalSchedules);
+  }, [schedules]);
 
   const handleRoutineClick = (routine) => {
     // Set the routine data in context
@@ -119,36 +170,6 @@ export default function CaregiverDashboard({ navigation }) {
     }
   ];
 
-  // Get schedules from Firebase
-  const publishedSchedules = getPublishedSchedules();
-  const draftSchedules = getDraftSchedules();
-  const allFirebaseSchedules = [...publishedSchedules, ...draftSchedules];
-  
-  // Combine predefined routines with Firebase schedules
-  const getDisplaySchedules = () => {
-    const predefinedRoutines = scheduleCards;
-    const firebaseSchedules = allFirebaseSchedules.map(schedule => ({
-      id: `firebase_${schedule.id}`,
-      title: schedule.name,
-      icon: getRoutineIcon(schedule.routineType),
-      steps: `${schedule.steps?.length || 0} steps`,
-      color: getRoutineColor(schedule.routineType),
-      scheduleName: schedule.name,
-      predefinedSteps: schedule.steps || [],
-      isFirebaseSchedule: true,
-      firebaseData: schedule,
-      isDraft: !schedule.isPublished
-    }));
-    
-    // Filter out predefined routines that have Firebase equivalents
-    const filteredPredefinedRoutines = predefinedRoutines.filter(routine => {
-      return !allFirebaseSchedules.some(schedule => 
-        schedule.routineType === routine.title
-      );
-    });
-    
-    return [...filteredPredefinedRoutines, ...firebaseSchedules];
-  };
 
   const getRoutineIcon = (routineType) => {
     const iconMap = {
@@ -238,7 +259,7 @@ export default function CaregiverDashboard({ navigation }) {
     </View>
             
             <View style={styles.scheduleGrid}>
-              {getDisplaySchedules().map((card) => (
+              {displaySchedules.map((card) => (
                 <TouchableOpacity 
                   key={card.id} 
                   style={styles.scheduleCard}
