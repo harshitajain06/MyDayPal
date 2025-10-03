@@ -11,20 +11,35 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useNavigationData } from "../../contexts/NavigationContext";
 import useSchedules from "../../hooks/useSchedules";
 import useUser from "../../hooks/useUser";
 
 export default function ScheduleBuilder() {
   const { userData, loading: userLoading } = useUser();
   const { createSchedule, updateSchedule, getScheduleById } = useSchedules();
+  const { navigationData, clearNavigationData } = useNavigationData();
   const route = useRoute();
-  const { routine, isEditing, scheduleId: existingScheduleId, existingSchedule } = route.params || {};
+  const { routine, isEditing, scheduleId: existingScheduleId, existingSchedule, routineName } = route.params || {};
+  
+  // Use context data if available, otherwise fall back to route params
+  const currentRoutine = navigationData?.routine || routine;
+  const currentIsEditing = navigationData?.isEditing || isEditing;
+  const currentRoutineName = navigationData?.routineName || routineName;
+  const currentExistingSchedule = navigationData?.routine || existingSchedule;
+  
+  // Debug: Log the received parameters
+  console.log("ScheduleBuilder received params:", { 
+    routeParams: { routine, isEditing, existingScheduleId, existingSchedule, routineName },
+    contextData: navigationData,
+    current: { currentRoutine, currentIsEditing, currentRoutineName, currentExistingSchedule }
+  });
   
   const [scheduleName, setScheduleName] = useState(
-    existingSchedule?.name || routine?.scheduleName || "Morning"
+    currentRoutineName || currentExistingSchedule?.name || currentRoutine?.scheduleName || "Morning"
   );
   const [steps, setSteps] = useState(
-    existingSchedule?.steps || routine?.predefinedSteps || [
+    currentExistingSchedule?.steps || currentRoutine?.predefinedSteps || [
       {
         id: 1,
         name: "Wake up",
@@ -58,6 +73,28 @@ export default function ScheduleBuilder() {
       setSelectedStep(steps[0]);
     }
   }, [steps, selectedStep]);
+
+  // Update state when navigation data changes
+  useEffect(() => {
+    if (navigationData) {
+      console.log("Navigation data changed, updating state:", navigationData);
+      const newSteps = navigationData.routine?.predefinedSteps || navigationData.routine?.steps || [];
+      setScheduleName(navigationData.routineName || navigationData.routine?.scheduleName || "Morning");
+      setSteps(newSteps);
+      
+      // Set the first step as selected if there are steps and no current selection
+      if (newSteps.length > 0 && !selectedStep) {
+        setSelectedStep(newSteps[0]);
+      }
+    }
+  }, [navigationData, selectedStep]);
+
+  // Cleanup navigation data when component unmounts
+  useEffect(() => {
+    return () => {
+      clearNavigationData();
+    };
+  }, [clearNavigationData]);
 
   const icons = [
     "☀️", "🦷", "👕", "🎒", "🎁", "🚂", "📚", "❤️", "🛏️", "⭐", "🎵", "🎨",
@@ -215,7 +252,7 @@ export default function ScheduleBuilder() {
       stepNumber: index + 1
     }));
     setSteps(renumberedSteps);
-    if (selectedStep.id === stepId && renumberedSteps.length > 0) {
+    if (selectedStep?.id === stepId && renumberedSteps.length > 0) {
       setSelectedStep(renumberedSteps[0]);
     }
 
@@ -246,10 +283,12 @@ export default function ScheduleBuilder() {
   };
 
   const updateSelectedStep = async (field, value) => {
+    if (!selectedStep) return; // Safety check
+    
     const updatedStep = { ...selectedStep, [field]: value };
     setSelectedStep(updatedStep);
     const updatedSteps = steps.map(step => 
-      step.id === selectedStep.id ? updatedStep : step
+      step.id === selectedStep?.id ? updatedStep : step
     );
     setSteps(updatedSteps);
 
@@ -297,7 +336,7 @@ export default function ScheduleBuilder() {
         <View style={styles.headerLeft}>
           <Text style={styles.logo}>Visual Scheduler</Text>
           <Text style={styles.pageTitle}>
-            {isEditing ? `Edit ${scheduleName}` : "Create Schedule"}
+            {currentIsEditing ? `Edit ${currentRoutineName || scheduleName}` : "Create Schedule"}
           </Text>
         </View>
         <View style={styles.headerRight}>
@@ -397,7 +436,7 @@ export default function ScheduleBuilder() {
                   key={step.id}
                   style={[
                     styles.stepItem,
-                    selectedStep.id === step.id && styles.selectedStepItem
+                    selectedStep?.id === step.id && styles.selectedStepItem
                   ]}
                   onPress={() => setSelectedStep(step)}
                 >
@@ -493,7 +532,7 @@ export default function ScheduleBuilder() {
                   <Text style={styles.inputLabel}>Step Name</Text>
                   <TextInput
                     style={styles.textInput}
-                    value={selectedStep.name}
+                    value={selectedStep.name || ''}
                     onChangeText={(value) => updateSelectedStep('name', value)}
                     placeholder="Enter step name"
                   />
@@ -529,7 +568,7 @@ export default function ScheduleBuilder() {
               <View style={styles.durationInput}>
                 <TextInput
                   style={styles.durationTextInput}
-                  value={selectedStep.duration.split(':')[0]}
+                  value={selectedStep.duration?.split(':')[0] || '2'}
                   onChangeText={(value) => updateSelectedStep('duration', `${value.padStart(2, '0')}:00`)}
                   keyboardType="numeric"
                 />
@@ -557,7 +596,7 @@ export default function ScheduleBuilder() {
               <Text style={styles.inputLabel}>Notes</Text>
               <TextInput
                 style={styles.notesInput}
-                value={selectedStep.notes}
+                value={selectedStep.notes || ''}
                 onChangeText={(value) => updateSelectedStep('notes', value)}
                 placeholder="Additional instructions or notes..."
                 placeholderTextColor="#999"

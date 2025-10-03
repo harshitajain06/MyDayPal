@@ -1,34 +1,35 @@
 import React from "react";
 import {
-  ActivityIndicator,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
+import { useNavigationData } from "../../contexts/NavigationContext";
 import useSchedules from "../../hooks/useSchedules";
 import useUser from "../../hooks/useUser";
 
 export default function CaregiverDashboard({ navigation }) {
   const { userData, loading: userLoading } = useUser();
   const { schedules, loading: schedulesLoading, getPublishedSchedules, getDraftSchedules } = useSchedules();
+  const { setRoutineData } = useNavigationData();
   const userName = userData?.name || "User";
 
   const handleRoutineClick = (routine) => {
-    navigation.navigate("ScheduleBuilder", { 
-      routine: routine,
-      isEditing: true 
-    });
+    // Set the routine data in context
+    setRoutineData(routine, true, routine.scheduleName || routine.title);
+    // Navigate to ScheduleBuilder tab
+    navigation.navigate("ScheduleBuilder");
   };
 
   const handleExistingScheduleClick = (schedule) => {
-    navigation.navigate("ScheduleBuilder", { 
-      scheduleId: schedule.id,
-      isEditing: true,
-      existingSchedule: schedule
-    });
+    // Set the schedule data in context
+    setRoutineData(schedule, true, schedule.name);
+    // Navigate to ScheduleBuilder tab
+    navigation.navigate("ScheduleBuilder");
   };
 
   const scheduleCards = [
@@ -222,14 +223,6 @@ export default function CaregiverDashboard({ navigation }) {
               <Text style={styles.mainButtonIcon}>⏰</Text>
               <Text style={styles.mainButtonText}>Quick Timer</Text>
       </TouchableOpacity>
-            
-      <TouchableOpacity
-              style={[styles.mainButton, styles.viewProgressBtn]}
-        onPress={() => navigation.navigate("Progress")}
-      >
-              <Text style={styles.mainButtonIcon}>📊</Text>
-              <Text style={styles.mainButtonText}>View Progress</Text>
-      </TouchableOpacity>
           </View>
         </View>
 
@@ -377,11 +370,6 @@ const styles = StyleSheet.create({
   },
   quickTimerBtn: {
     backgroundColor: "#FFD700",
-  },
-  viewProgressBtn: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#dee2e6",
   },
   mainButtonIcon: {
     fontSize: 20,

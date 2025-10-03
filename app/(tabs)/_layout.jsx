@@ -1,25 +1,25 @@
-import React, { useEffect, useState } from "react";
-import { createStackNavigator } from "@react-navigation/stack";
+import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createDrawerNavigator } from "@react-navigation/drawer";
 import { useNavigation } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
-import { View, ActivityIndicator, Alert } from "react-native";
-import { signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { createStackNavigator } from "@react-navigation/stack";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { doc, getDoc, getFirestore } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, View } from "react-native";
+import { NavigationProvider } from "../../contexts/NavigationContext";
 
 import CaregiverDashboard from "./CaregiverDashboard";
 import ChildMode from "./ChildMode";
-import ProgressScreen from "./ProgressScreen";
-import TeacherDashboard from "./TeacherDashboard";
-import ScheduleBuilder from "./ScheduleBuilder";
-import SettingsScreen from "./SettingsScreen";
 import InviteScreen from "./InviteScreen";
+import ProgressScreen from "./ProgressScreen";
+import ScheduleBuilder from "./ScheduleBuilder";
+import TeacherDashboard from "./TeacherDashboard";
 import LoginRegister from "./index";
 
+import { auth } from "../../config/firebase";
 import { Colors } from "../../constants/Colors";
 import { useColorScheme } from "../../hooks/useColorScheme";
-import { auth } from "../../config/firebase";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -220,21 +220,23 @@ export default function StackLayout() {
   }
 
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-        contentStyle: {
-          backgroundColor: Colors[colorScheme ?? "light"].background,
-        },
-      }}
-    >
-      {user ? (
-        <Stack.Screen name="Drawer">
-          {() => <DrawerNavigator role={role} />}
-        </Stack.Screen>
-      ) : (
-        <Stack.Screen name="LoginRegister" component={LoginRegister} />
-      )}
-    </Stack.Navigator>
+    <NavigationProvider>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          contentStyle: {
+            backgroundColor: Colors[colorScheme ?? "light"].background,
+          },
+        }}
+      >
+        {user ? (
+          <Stack.Screen name="Drawer">
+            {() => <DrawerNavigator role={role} />}
+          </Stack.Screen>
+        ) : (
+          <Stack.Screen name="LoginRegister" component={LoginRegister} />
+        )}
+      </Stack.Navigator>
+    </NavigationProvider>
   );
 }
