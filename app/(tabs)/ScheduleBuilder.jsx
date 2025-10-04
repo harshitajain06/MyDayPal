@@ -54,8 +54,6 @@ export default function ScheduleBuilder() {
 
   // Load schedule data from Firebase when editing existing schedule
   useEffect(() => {
-    if (isInitialized) return; // Prevent re-initialization
-    
     const loadScheduleData = async () => {
       // If we have an existing schedule ID, load it from Firebase
       if (existingScheduleId && !currentExistingSchedule) {
@@ -124,7 +122,7 @@ export default function ScheduleBuilder() {
       } else if (currentRoutine?.predefinedSteps) {
         // Use predefined steps from routine
         console.log("Using predefined steps from routine:", currentRoutine);
-        setScheduleName(currentRoutine.scheduleName || "Morning");
+        setScheduleName(currentRoutine.scheduleName || currentRoutine.title || "Morning");
         setSteps(Array.isArray(currentRoutine.predefinedSteps) ? currentRoutine.predefinedSteps : []);
       } else {
         // Default steps for new schedule
@@ -152,8 +150,11 @@ export default function ScheduleBuilder() {
       setIsInitialized(true);
     };
 
-    loadScheduleData();
-  }, [existingScheduleId, currentExistingSchedule, currentRoutine, isInitialized]);
+    // Only load if not already initialized or if we have new data
+    if (!isInitialized || (currentRoutine && !isInitialized)) {
+      loadScheduleData();
+    }
+  }, [existingScheduleId, currentExistingSchedule, currentRoutine]);
 
   // Set initial selected step when steps are loaded
   useEffect(() => {
@@ -170,29 +171,36 @@ export default function ScheduleBuilder() {
       // Reset initialization to allow re-processing
       setIsInitialized(false);
       
-      // Only update steps if we don't already have a scheduleId (to avoid overriding saved data)
-      if (!scheduleId) {
-        const newSteps = navigationData.routine?.predefinedSteps || navigationData.routine?.steps || [];
-        setScheduleName(navigationData.routineName || navigationData.routine?.scheduleName || "Morning");
-        setSteps(Array.isArray(newSteps) ? newSteps : []);
+      // Process routine data from navigation context
+      const routine = navigationData.routine;
+      if (routine) {
+        // Set schedule name
+        const routineName = navigationData.routineName || routine.scheduleName || routine.title || "Morning";
+        setScheduleName(routineName);
         
-        // Set the first step as selected if there are steps and no current selection
-        if (newSteps.length > 0 && !selectedStep) {
-          setSelectedStep(newSteps[0]);
+        // Set steps from predefined steps or existing steps
+        const newSteps = routine.predefinedSteps || routine.steps || [];
+        if (Array.isArray(newSteps) && newSteps.length > 0) {
+          setSteps(newSteps);
+          
+          // Set the first step as selected if there are steps and no current selection
+          if (!selectedStep) {
+            setSelectedStep(newSteps[0]);
+          }
         }
-      }
-      
-      // If this is an existing schedule with an ID, set it
-      if (navigationData.routine?.id) {
-        setScheduleId(navigationData.routine.id);
-      } else {
-        // Reset schedule ID for new routines
-        setScheduleId(null);
+        
+        // If this is an existing schedule with an ID, set it
+        if (routine.id) {
+          setScheduleId(routine.id);
+        } else {
+          // Reset schedule ID for new routines
+          setScheduleId(null);
+        }
       }
       
       setIsInitialized(true);
     }
-  }, [navigationData, selectedStep, scheduleId]);
+  }, [navigationData, selectedStep]);
 
   // Reload schedule data when scheduleId changes (after adding steps)
   useEffect(() => {
@@ -218,9 +226,12 @@ export default function ScheduleBuilder() {
   // Cleanup navigation data when component unmounts
   useEffect(() => {
     return () => {
-      clearNavigationData();
+      // Only clear if we're not in the middle of editing
+      if (!isInitialized || steps.length === 0) {
+        clearNavigationData();
+      }
     };
-  }, [clearNavigationData]);
+  }, [clearNavigationData, isInitialized, steps.length]);
 
   const icons = [
     "☀️", "🦷", "👕", "🎒", "🎁", "🚂", "📚", "❤️", "🛏️", "⭐", "🎵", "🎨",

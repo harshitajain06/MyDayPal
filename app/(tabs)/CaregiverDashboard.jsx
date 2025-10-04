@@ -70,15 +70,19 @@ export default function CaregiverDashboard({ navigation }) {
   }, [schedules]);
 
   const handleRoutineClick = (routine) => {
+    console.log("Routine clicked:", routine);
     // Set the routine data in context
     setRoutineData(routine, true, routine.scheduleName || routine.title);
+    console.log("Routine data set in context, navigating to ScheduleBuilder");
     // Navigate to ScheduleBuilder tab
     navigation.navigate("ScheduleBuilder");
   };
 
   const handleExistingScheduleClick = (schedule) => {
+    console.log("Existing schedule clicked:", schedule);
     // Set the schedule data in context
     setRoutineData(schedule, true, schedule.name);
+    console.log("Schedule data set in context, navigating to ScheduleBuilder");
     // Navigate to ScheduleBuilder tab
     navigation.navigate("ScheduleBuilder");
   };
