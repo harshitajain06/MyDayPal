@@ -57,7 +57,9 @@ export default function CaregiverDashboard({ navigation }) {
         predefinedSteps: schedule.steps || [],
         isFirebaseSchedule: true,
         firebaseData: schedule,
-        isDraft: !schedule.isPublished
+        isDraft: !schedule.isPublished,
+        creatorRole: schedule.creatorRole,
+        isOwnSchedule: schedule.userId === userData?.uid
       };
     });
     
@@ -264,6 +266,11 @@ export default function CaregiverDashboard({ navigation }) {
                     <Text style={styles.scheduleTitle}>{card.title}</Text>
                     {card.isDraft && (
                       <Text style={styles.draftBadge}>Draft</Text>
+                    )}
+                    {card.isFirebaseSchedule && card.creatorRole && (
+                      <Text style={styles.creatorBadge}>
+                        {card.isOwnSchedule ? 'Your routine' : `Created by ${card.creatorRole}`}
+                      </Text>
                     )}
                   </View>
                   <Text style={styles.scheduleSteps}>{card.steps}</Text>
@@ -472,6 +479,16 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#6c757d",
     backgroundColor: "#f8f9fa",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginTop: 2,
+    fontWeight: "500",
+  },
+  creatorBadge: {
+    fontSize: 10,
+    color: "#20B2AA",
+    backgroundColor: "#e8f5f5",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,

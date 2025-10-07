@@ -84,7 +84,6 @@ const TeacherTabs = () => {
       })}
     >
       <Tab.Screen name="TeacherDashboard" component={TeacherDashboard} />
-      <Tab.Screen name="ProgressScreen" component={ProgressScreen} />
       <Tab.Screen name="ScheduleBuilder" component={ScheduleBuilder} />
     </Tab.Navigator>
   );

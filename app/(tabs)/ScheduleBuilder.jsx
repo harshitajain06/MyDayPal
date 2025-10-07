@@ -17,7 +17,7 @@ import useUser from "../../hooks/useUser";
 
 export default function ScheduleBuilder() {
   const { userData, loading: userLoading } = useUser();
-  const { createSchedule, updateSchedule, deleteSchedule, getScheduleById } = useSchedules();
+  const { createSchedule, updateSchedule, deleteSchedule, getScheduleById, canEditSchedule } = useSchedules();
   const { navigationData, setRoutineData, clearNavigationData } = useNavigationData();
   const route = useRoute();
   const { routine, isEditing, scheduleId: existingScheduleId, existingSchedule, routineName } = route.params || {};
@@ -51,6 +51,8 @@ export default function ScheduleBuilder() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [scheduleId, setScheduleId] = useState(existingScheduleId || null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [canEdit, setCanEdit] = useState(true);
+  const [isReloading, setIsReloading] = useState(false);
 
   // Load schedule data from Firebase when editing existing schedule
   useEffect(() => {
@@ -66,6 +68,11 @@ export default function ScheduleBuilder() {
             setScheduleName(scheduleData.name || "Morning");
             setSteps(Array.isArray(scheduleData.steps) ? scheduleData.steps : []);
             setScheduleId(existingScheduleId);
+            
+            // Check if user can edit this schedule
+            const editPermission = await canEditSchedule(scheduleData);
+            setCanEdit(editPermission);
+            console.log("Can edit schedule:", editPermission);
           } else {
             console.log("No schedule found, using defaults");
             setSteps([
@@ -119,14 +126,21 @@ export default function ScheduleBuilder() {
         if (currentExistingSchedule.id) {
           setScheduleId(currentExistingSchedule.id);
         }
+        
+        // Check if user can edit this schedule
+        const editPermission = await canEditSchedule(currentExistingSchedule);
+        setCanEdit(editPermission);
+        console.log("Can edit schedule from context:", editPermission);
       } else if (currentRoutine?.predefinedSteps) {
         // Use predefined steps from routine
         console.log("Using predefined steps from routine:", currentRoutine);
         setScheduleName(currentRoutine.scheduleName || currentRoutine.title || "Morning");
         setSteps(Array.isArray(currentRoutine.predefinedSteps) ? currentRoutine.predefinedSteps : []);
+        setCanEdit(true); // New schedules can always be edited
       } else {
         // Default steps for new schedule
         console.log("Using default steps for new schedule");
+        setCanEdit(true); // New schedules can always be edited
         setSteps([
           {
             id: 1,
@@ -161,7 +175,7 @@ export default function ScheduleBuilder() {
     if ((steps || []).length > 0 && !selectedStep) {
       setSelectedStep(steps[0]);
     }
-  }, [steps, selectedStep]);
+  }, [steps]);
 
   // Update state when navigation data changes
   useEffect(() => {
@@ -200,13 +214,14 @@ export default function ScheduleBuilder() {
       
       setIsInitialized(true);
     }
-  }, [navigationData, selectedStep]);
+  }, [navigationData]);
 
   // Reload schedule data when scheduleId changes (after adding steps)
   useEffect(() => {
     const reloadScheduleData = async () => {
-      if (scheduleId && typeof scheduleId === 'string') {
+      if (scheduleId && typeof scheduleId === 'string' && isInitialized && !isReloading) {
         console.log("Reloading schedule data for ID:", scheduleId);
+        setIsReloading(true);
         try {
           const scheduleData = await getScheduleById(scheduleId);
           if (scheduleData) {
@@ -216,12 +231,14 @@ export default function ScheduleBuilder() {
           }
         } catch (error) {
           console.error("Error reloading schedule data:", error);
+        } finally {
+          setIsReloading(false);
         }
       }
     };
 
     reloadScheduleData();
-  }, [scheduleId, getScheduleById]);
+  }, [scheduleId, isInitialized]);
 
   // Cleanup navigation data when component unmounts
   useEffect(() => {
@@ -545,15 +562,23 @@ export default function ScheduleBuilder() {
       </View>
 
       <ScrollView style={styles.scrollView}>
+        {/* Read-only indicator */}
+        {!canEdit && (
+          <View style={styles.readOnlyBanner}>
+            <Text style={styles.readOnlyText}>📖 Read-only mode - You can view this routine but cannot edit it</Text>
+          </View>
+        )}
+        
         {/* Schedule Name and Actions */}
         <View style={styles.scheduleSection}>
           <View style={styles.scheduleNameContainer}>
         <TextInput
-              style={styles.scheduleNameInput}
+              style={[styles.scheduleNameInput, !canEdit && styles.readOnlyInput]}
               value={scheduleName}
-              onChangeText={setScheduleName}
+              onChangeText={canEdit ? setScheduleName : undefined}
               placeholder="Schedule name (e.g., Morning)"
-          placeholderTextColor="#999"
+              placeholderTextColor="#999"
+              editable={canEdit}
         />
             {isAutoSaving && (
               <View style={styles.autoSaveIndicator}>
@@ -564,9 +589,9 @@ export default function ScheduleBuilder() {
           </View>
           <View style={styles.actionButtons}>
             <TouchableOpacity 
-              style={[styles.actionButton, styles.publishButton, isPublishing && styles.disabledButton]}
-              onPress={publishSchedule}
-              disabled={isPublishing}
+              style={[styles.actionButton, styles.publishButton, (isPublishing || !canEdit) && styles.disabledButton]}
+              onPress={canEdit ? publishSchedule : undefined}
+              disabled={isPublishing || !canEdit}
             >
               {isPublishing ? (
                 <ActivityIndicator size="small" color="#fff" />
@@ -580,8 +605,9 @@ export default function ScheduleBuilder() {
             
             {(scheduleId || existingScheduleId) && (
               <TouchableOpacity 
-                style={[styles.actionButton, styles.updateButton]}
-                onPress={() => setShowUpdateModal(true)}
+                style={[styles.actionButton, styles.updateButton, !canEdit && styles.disabledButton]}
+                onPress={canEdit ? () => setShowUpdateModal(true) : undefined}
+                disabled={!canEdit}
               >
                 <Text style={styles.actionButtonIcon}>✏️</Text>
                 <Text style={[styles.actionButtonText, styles.updateButtonText]}>Update</Text>
@@ -590,8 +616,9 @@ export default function ScheduleBuilder() {
             
             {(scheduleId || existingScheduleId) && (
               <TouchableOpacity 
-                style={[styles.actionButton, styles.deleteButton]}
-                onPress={() => setShowDeleteModal(true)}
+                style={[styles.actionButton, styles.deleteButton, !canEdit && styles.disabledButton]}
+                onPress={canEdit ? () => setShowDeleteModal(true) : undefined}
+                disabled={!canEdit}
               >
                 <Text style={styles.actionButtonIcon}>🗑️</Text>
                 <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Delete</Text>
@@ -615,7 +642,7 @@ export default function ScheduleBuilder() {
                     styles.stepItem,
                     selectedStep?.id === step.id && styles.selectedStepItem
                   ]}
-                  onPress={() => setSelectedStep(step)}
+                  onPress={canEdit ? () => setSelectedStep(step) : undefined}
                 >
                   <Text style={styles.dragHandle}>⋮⋮</Text>
                   <Text style={styles.stepIcon}>{step.icon}</Text>
@@ -635,10 +662,11 @@ export default function ScheduleBuilder() {
             </ScrollView>
             
             <TouchableOpacity
-              style={styles.addStepButton} 
-              onPress={() => setShowAddStepForm(true)}
+              style={[styles.addStepButton, !canEdit && styles.disabledButton]} 
+              onPress={canEdit ? () => setShowAddStepForm(true) : undefined}
+              disabled={!canEdit}
             >
-              <Text style={styles.addStepButtonText}>+ Add Step</Text>
+              <Text style={[styles.addStepButtonText, !canEdit && styles.disabledButtonText]}>+ Add Step</Text>
             </TouchableOpacity>
 
             {/* Add Step Form */}
@@ -708,10 +736,11 @@ export default function ScheduleBuilder() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Step Name</Text>
                   <TextInput
-                    style={styles.textInput}
+                    style={[styles.textInput, !canEdit && styles.readOnlyInput]}
                     value={selectedStep.name || ''}
-                    onChangeText={(value) => updateSelectedStep('name', value)}
+                    onChangeText={canEdit ? (value) => updateSelectedStep('name', value) : undefined}
                     placeholder="Enter step name"
+                    editable={canEdit}
                   />
                 </View>
 
@@ -731,7 +760,7 @@ export default function ScheduleBuilder() {
                       styles.iconButton,
                       selectedStep.icon === icon && styles.selectedIconButton
                     ]}
-                    onPress={() => updateSelectedStep('icon', icon)}
+                    onPress={canEdit ? () => updateSelectedStep('icon', icon) : undefined}
                   >
                     <Text style={styles.iconText}>{icon}</Text>
                   </TouchableOpacity>
@@ -744,10 +773,11 @@ export default function ScheduleBuilder() {
               <Text style={styles.inputLabel}>Timer Duration</Text>
               <View style={styles.durationInput}>
                 <TextInput
-                  style={styles.durationTextInput}
+                  style={[styles.durationTextInput, !canEdit && styles.readOnlyInput]}
                   value={selectedStep.duration?.split(':')[0] || '2'}
-                  onChangeText={(value) => updateSelectedStep('duration', `${value.padStart(2, '0')}:00`)}
+                  onChangeText={canEdit ? (value) => updateSelectedStep('duration', `${value.padStart(2, '0')}:00`) : undefined}
                   keyboardType="numeric"
+                  editable={canEdit}
                 />
                 <Text style={styles.durationLabel}>minutes</Text>
               </View>
@@ -772,10 +802,11 @@ export default function ScheduleBuilder() {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Notes</Text>
               <TextInput
-                style={styles.notesInput}
+                style={[styles.notesInput, !canEdit && styles.readOnlyInput]}
                 value={selectedStep.notes || ''}
-                onChangeText={(value) => updateSelectedStep('notes', value)}
+                onChangeText={canEdit ? (value) => updateSelectedStep('notes', value) : undefined}
                 placeholder="Additional instructions or notes..."
+                editable={canEdit}
                 placeholderTextColor="#999"
                 multiline
                 numberOfLines={4}
@@ -1413,5 +1444,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#fff",
+  },
+  readOnlyInput: {
+    backgroundColor: "#f5f5f5",
+    color: "#666",
+  },
+  disabledButton: {
+    backgroundColor: "#ccc",
+    opacity: 0.6,
+  },
+  disabledButtonText: {
+    color: "#999",
+  },
+  readOnlyBanner: {
+    backgroundColor: "#fff3cd",
+    borderColor: "#ffeaa7",
+    borderWidth: 1,
+    padding: 12,
+    margin: 16,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  readOnlyText: {
+    color: "#856404",
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
   },
 });
