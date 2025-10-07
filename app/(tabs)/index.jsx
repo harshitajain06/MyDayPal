@@ -96,7 +96,7 @@ export default function AuthPage() {
 
         // link child to caregiver
         await updateDoc(doc(db, 'users', caregiverId), {
-          patients: arrayUnion(uid),
+          childs: arrayUnion(uid),
         });
       } else {
         // caregiver or teacher
