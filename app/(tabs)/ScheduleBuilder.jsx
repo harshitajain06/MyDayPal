@@ -134,12 +134,14 @@ export default function ScheduleBuilder() {
       } else if (currentRoutine?.predefinedSteps) {
         // Use predefined steps from routine
         console.log("Using predefined steps from routine:", currentRoutine);
+        console.log("User role:", userData?.role, "- Can create new schedule from routine:", true);
         setScheduleName(currentRoutine.scheduleName || currentRoutine.title || "Morning");
         setSteps(Array.isArray(currentRoutine.predefinedSteps) ? currentRoutine.predefinedSteps : []);
         setCanEdit(true); // New schedules can always be edited
       } else {
         // Default steps for new schedule
         console.log("Using default steps for new schedule");
+        console.log("User role:", userData?.role, "- Can create new schedule:", true);
         setCanEdit(true); // New schedules can always be edited
         setSteps([
           {
@@ -562,10 +564,10 @@ export default function ScheduleBuilder() {
       </View>
 
       <ScrollView style={styles.scrollView}>
-        {/* Read-only indicator */}
-        {!canEdit && (
+        {/* Read-only indicator - only show for teachers viewing caregiver-created routines */}
+        {!canEdit && userData?.role === 'teacher' && (
           <View style={styles.readOnlyBanner}>
-            <Text style={styles.readOnlyText}>📖 Read-only mode - You can view this routine but cannot edit it</Text>
+            <Text style={styles.readOnlyText}>📖 Read-only mode - You can view this caregiver-created routine but cannot edit it</Text>
           </View>
         )}
         

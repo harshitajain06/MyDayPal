@@ -244,18 +244,19 @@ export default function useSchedules() {
       return true;
     }
     
+    // Caregivers can edit any schedule they have access to (their own or from their teachers)
+    if (currentUserRole === 'caregiver') {
+      console.log("canEditSchedule: Caregiver can edit any accessible schedule");
+      return true;
+    }
+    
     // Teachers cannot edit caregiver-created schedules
     if (currentUserRole === 'teacher' && schedule.creatorRole === 'caregiver' && schedule.userId !== auth.currentUser.uid) {
       console.log("canEditSchedule: Teacher cannot edit caregiver-created schedule");
       return false;
     }
     
-    // Caregivers can edit teacher-created schedules (if they're the associated caregiver)
-    if (currentUserRole === 'caregiver' && schedule.creatorRole === 'teacher' && schedule.caregiverId === auth.currentUser.uid) {
-      console.log("canEditSchedule: Caregiver can edit teacher-created schedule");
-      return true;
-    }
-    
+    // For any other case (like children), they can only edit their own schedules
     console.log("canEditSchedule: No permission to edit");
     return false;
   };
