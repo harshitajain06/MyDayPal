@@ -222,7 +222,7 @@ export default function AuthPage() {
 
             <Text style={styles.label}>Select Role</Text>
             <View style={styles.roleContainer}>
-              {['caregiver', 'teacher', 'child'].map((r) => (
+              {['caregiver', 'teacher'].map((r) => (
                 <TouchableOpacity
                   key={r}
                   onPress={() => setRole(r)}

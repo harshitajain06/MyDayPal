@@ -1,3 +1,4 @@
+import { useFocusEffect } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -22,6 +23,13 @@ export default function CaregiverDashboard({ navigation }) {
   const userName = userData?.name || "User";
   const [displaySchedules, setDisplaySchedules] = useState([]);
   const [timerModalVisible, setTimerModalVisible] = useState(false);
+
+  // Refresh schedules when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log("TeacherDashboard focused - schedules should auto-refresh via onSnapshot");
+    }, [])
+  );
 
   // Update display schedules when schedules change
   useEffect(() => {

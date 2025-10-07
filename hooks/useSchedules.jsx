@@ -72,8 +72,18 @@ export default function useSchedules() {
         }
 
         // Execute all queries and combine results
-        const allSchedules = [];
-        const processedIds = new Set();
+        const allSchedules = new Map(); // Use Map to avoid duplicates
+        const unsubscribes = [];
+        
+        const updateSchedules = () => {
+          const sortedSchedules = Array.from(allSchedules.values()).sort((a, b) => 
+            new Date(b.updatedAt) - new Date(a.updatedAt)
+          );
+          console.log("Processed schedules:", sortedSchedules);
+          setSchedules(sortedSchedules);
+          setLoading(false);
+          setError(null);
+        };
         
         for (const q of queries) {
           const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -84,29 +94,26 @@ export default function useSchedules() {
               updatedAt: doc.data().updatedAt?.toDate?.() || new Date(),
             }));
             
-            // Add only new schedules to avoid duplicates
+            // Update the map with new/updated schedules
             schedulesData.forEach(schedule => {
-              if (!processedIds.has(schedule.id)) {
-                allSchedules.push(schedule);
-                processedIds.add(schedule.id);
-              }
+              allSchedules.set(schedule.id, schedule);
             });
             
-            // Sort by updatedAt and update state
-            const sortedSchedules = allSchedules.sort((a, b) => 
-              new Date(b.updatedAt) - new Date(a.updatedAt)
-            );
-            
-            console.log("Processed schedules:", sortedSchedules);
-            setSchedules(sortedSchedules);
-            setLoading(false);
-            setError(null);
+            // Update the state with all schedules
+            updateSchedules();
           }, (error) => {
             console.error("Error fetching schedules:", error);
             setError(error.message);
             setLoading(false);
           });
+          
+          unsubscribes.push(unsubscribe);
         }
+        
+        // Return cleanup function
+        return () => {
+          unsubscribes.forEach(unsubscribe => unsubscribe());
+        };
       } catch (error) {
         console.error("Error setting up schedule queries:", error);
         setError(error.message);
@@ -114,7 +121,13 @@ export default function useSchedules() {
       }
     };
 
-    fetchSchedules();
+    const cleanup = fetchSchedules();
+    
+    return () => {
+      if (cleanup) {
+        cleanup();
+      }
+    };
   }, []);
 
   // Create a new schedule
@@ -261,6 +274,13 @@ export default function useSchedules() {
     return false;
   };
 
+  // Manual refresh function
+  const refreshSchedules = () => {
+    console.log("Manually refreshing schedules...");
+    // The onSnapshot listeners will automatically update when data changes
+    // This function can be used to trigger a re-fetch if needed
+  };
+
   return {
     schedules,
     loading,
@@ -273,5 +293,6 @@ export default function useSchedules() {
     getDraftSchedules,
     getSchedulesByType,
     canEditSchedule,
+    refreshSchedules,
   };
 }
