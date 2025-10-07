@@ -214,17 +214,6 @@ export default function CaregiverDashboard({ navigation }) {
             <Text style={styles.logo}>Visual Scheduler</Text>
             <Text style={styles.wifiIcon}>📶</Text>
           </View>
-          <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.headerIcon}>
-              <Text style={styles.iconText}>🔔</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerIcon}>
-              <Text style={styles.iconText}>❓</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerIcon}>
-              <Text style={styles.iconText}>⚙️</Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* Greeting and Main Actions */}
