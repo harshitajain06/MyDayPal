@@ -1,23 +1,27 @@
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
+import TimerModal from "../../components/TimerModal";
 import { useNavigationData } from "../../contexts/NavigationContext";
+import useRecentActivities from "../../hooks/useRecentActivities";
 import useSchedules from "../../hooks/useSchedules";
 import useUser from "../../hooks/useUser";
 
 export default function CaregiverDashboard({ navigation }) {
   const { userData, loading: userLoading } = useUser();
   const { schedules, loading: schedulesLoading, getPublishedSchedules, getDraftSchedules } = useSchedules();
+  const { activities: recentActivities, loading: activitiesLoading } = useRecentActivities();
   const { setRoutineData } = useNavigationData();
   const userName = userData?.name || "User";
   const [displaySchedules, setDisplaySchedules] = useState([]);
+  const [timerModalVisible, setTimerModalVisible] = useState(false);
 
   // Update display schedules when schedules change
   useEffect(() => {
@@ -150,29 +154,22 @@ export default function CaregiverDashboard({ navigation }) {
     }
   ];
 
-  const recentActivities = [
-    {
-      id: 1,
-      title: "Morning Routine finished",
-      icon: "✅",
-      time: "8:10 AM • 10/12 mins",
-      color: "#4CAF50"
-    },
-    {
-      id: 2,
-      title: "New step added to Bedtime",
-      icon: "🔵",
-      time: "7:45 AM",
-      color: "#20B2AA"
-    },
-    {
-      id: 3,
-      title: "Afternoon Routine completed",
-      icon: "✅", 
-      time: "Yesterday • 8/10 mins",
-      color: "#4CAF50"
-    }
-  ];
+  // Format time for display
+  const formatActivityTime = (timestamp) => {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    
+    const date = new Date(timestamp);
+    return date.toLocaleDateString();
+  };
 
 
   const getRoutineIcon = (routineType) => {
@@ -197,7 +194,7 @@ export default function CaregiverDashboard({ navigation }) {
     return colorMap[routineType] || "#20B2AA";
   };
 
-  if (userLoading || schedulesLoading) {
+  if (userLoading || schedulesLoading || activitiesLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -244,10 +241,13 @@ export default function CaregiverDashboard({ navigation }) {
               <Text style={styles.mainButtonText}>New Schedule</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={[styles.mainButton, styles.quickTimerBtn]}>
+            <TouchableOpacity 
+              style={[styles.mainButton, styles.quickTimerBtn]}
+              onPress={() => setTimerModalVisible(true)}
+            >
               <Text style={styles.mainButtonIcon}>⏰</Text>
               <Text style={styles.mainButtonText}>Quick Timer</Text>
-      </TouchableOpacity>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -302,21 +302,33 @@ export default function CaregiverDashboard({ navigation }) {
           <View style={styles.activitySection}>
             <Text style={styles.sectionTitle}>Recent Activity</Text>
             <View style={styles.activityList}>
-              {recentActivities.map((activity) => (
-                <View key={activity.id} style={styles.activityItem}>
-                  <View style={styles.activityLeft}>
-                    <Text style={styles.activityIcon}>{activity.icon}</Text>
-                    <View>
-                      <Text style={styles.activityTitle}>{activity.title}</Text>
-                      <Text style={styles.activityTime}>{activity.time}</Text>
+              {recentActivities.length > 0 ? (
+                recentActivities.slice(0, 5).map((activity) => (
+                  <View key={activity.id} style={styles.activityItem}>
+                    <View style={styles.activityLeft}>
+                      <Text style={styles.activityIcon}>{activity.icon}</Text>
+                      <View>
+                        <Text style={styles.activityTitle}>{activity.title}</Text>
+                        <Text style={styles.activityTime}>
+                          {formatActivityTime(activity.timestamp)}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                </View>
-              ))}
+                ))
+              ) : (
+                <Text style={styles.noActivitiesText}>No recent activities</Text>
+              )}
             </View>
           </View>
         </View>
       </ScrollView>
+      
+      {/* Timer Modal */}
+      <TimerModal 
+        visible={timerModalVisible} 
+        onClose={() => setTimerModalVisible(false)} 
+      />
     </SafeAreaView>
   );
 }
@@ -546,5 +558,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: "#6c757d",
+  },
+  noActivitiesText: {
+    textAlign: 'center',
+    color: '#6c757d',
+    fontSize: 14,
+    fontStyle: 'italic',
+    paddingVertical: 20,
   },
 });
