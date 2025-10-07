@@ -1,18 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, ActivityIndicator, Alert, Image
-} from 'react-native';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { useNavigation } from '@react-navigation/native';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   updateProfile
 } from 'firebase/auth';
-import { auth } from '../../config/firebase';
-import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { arrayUnion, doc, getDoc, getFirestore, setDoc, updateDoc } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import {
+  ActivityIndicator, Alert, Image,
+  ScrollView,
+  StyleSheet,
+  Text, TextInput, TouchableOpacity,
+  View
+} from 'react-native';
+import { auth } from '../../config/firebase';
 
 export default function AuthPage() {
   const navigation = useNavigation();
@@ -60,7 +63,7 @@ export default function AuthPage() {
       return Alert.alert('Error', 'Please fill all fields.');
     }
 
-    if (role === 'child' && !inviteCode.trim()) {
+    if ((role === 'child' || role === 'teacher') && !inviteCode.trim()) {
       return Alert.alert('Invite Required', 'Please enter the caregiver invite code.');
     }
 
@@ -73,7 +76,7 @@ export default function AuthPage() {
         displayName: registerName,
       });
 
-      if (role === 'child') {
+      if (role === 'child' || role === 'teacher') {
         // validate invite
         const inviteRef = doc(db, 'invites', inviteCode.trim());
         const caregiverSnap = await getDoc(inviteRef);
@@ -85,27 +88,29 @@ export default function AuthPage() {
 
         const caregiverId = caregiverSnap.data().caregiverId;
 
-        // create child user
-        await setDoc(doc(db, 'users', uid), {
-          uid,
-          name: registerName,
-          email: registerEmail,
-          role: 'child',
-          caregiverId,
-        });
-
-        // link child to caregiver
-        await updateDoc(doc(db, 'users', caregiverId), {
-          childs: arrayUnion(uid),
-        });
-      } else {
-        // caregiver or teacher
+        // create child or teacher user
         await setDoc(doc(db, 'users', uid), {
           uid,
           name: registerName,
           email: registerEmail,
           role,
-          ...(role === 'caregiver' ? { childs: [] } : {}),
+          caregiverId,
+        });
+
+        // link child/teacher to caregiver
+        const updateField = role === 'child' ? 'childs' : 'teachers';
+        await updateDoc(doc(db, 'users', caregiverId), {
+          [updateField]: arrayUnion(uid),
+        });
+      } else {
+        // caregiver only
+        await setDoc(doc(db, 'users', uid), {
+          uid,
+          name: registerName,
+          email: registerEmail,
+          role,
+          childs: [],
+          teachers: [],
         });
       }
 
@@ -228,7 +233,7 @@ export default function AuthPage() {
               ))}
             </View>
 
-            {role === 'child' && (
+            {(role === 'child' || role === 'teacher') && (
               <>
                 <Text style={styles.label}>Caregiver Invite Code</Text>
                 <TextInput

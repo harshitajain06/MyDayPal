@@ -1,15 +1,15 @@
 import { useRoute } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { useNavigationData } from "../../contexts/NavigationContext";
 import useSchedules from "../../hooks/useSchedules";
@@ -537,21 +537,10 @@ export default function ScheduleBuilder() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.logo}>Visual Scheduler</Text>
+          <Text style={styles.logo}>MyDayPal</Text>
           <Text style={styles.pageTitle}>
             {currentIsEditing ? `Edit ${currentRoutineName || scheduleName}` : "Create Schedule"}
           </Text>
-        </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerIcon}>
-            <Text style={styles.iconText}>🔔</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIcon}>
-            <Text style={styles.iconText}>❓</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIcon}>
-            <Text style={styles.iconText}>⚙️</Text>
-          </TouchableOpacity>
         </View>
       </View>
 

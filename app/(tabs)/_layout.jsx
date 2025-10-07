@@ -137,8 +137,19 @@ const DrawerNavigator = ({ role }) => {
     if (role === "teacher") return TeacherTabs;
     if (role === "caregiver") return CaregiverTabs;
     if (role === "child") return ChildTabs;
-  
+    
+    // Default fallback - return CaregiverTabs if role is null/undefined
+    return CaregiverTabs;
   };
+
+  // Show loading if role is still being determined
+  if (role === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <Drawer.Navigator initialRouteName="MainTabs">

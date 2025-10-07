@@ -209,17 +209,12 @@ export default function CaregiverDashboard({ navigation }) {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.logo}>Visual Scheduler</Text>
-            <Text style={styles.wifiIcon}>📶</Text>
-          </View>
-        </View>
+       
 
         {/* Greeting and Main Actions */}
         <View style={styles.greetingSection}>
           <Text style={styles.greeting}>Hello, {userName}! 👋</Text>
-          <Text style={styles.subtitle}>Ready to start your day with visual schedules?</Text>
+          <Text style={styles.subtitle}>Ready to start your day with MyDayPal?</Text>
           
           <View style={styles.mainActions}>
       <TouchableOpacity
@@ -417,6 +412,7 @@ const styles = StyleSheet.create({
   activitySection: {
     flex: 1,
     marginLeft: 10,
+    marginTop: 20,
   },
   sectionHeader: {
     flexDirection: "row",
