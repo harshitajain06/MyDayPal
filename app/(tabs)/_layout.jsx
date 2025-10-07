@@ -137,7 +137,7 @@ const DrawerNavigator = ({ role }) => {
     if (role === "teacher") return TeacherTabs;
     if (role === "caregiver") return CaregiverTabs;
     if (role === "child") return ChildTabs;
-    return CaregiverTabs; // fallback
+  
   };
 
   return (
@@ -148,17 +148,19 @@ const DrawerNavigator = ({ role }) => {
         options={{ title: "Home" }}
       />
 
-      {/* ✅ Invite Screen accessible via drawer */}
-      <Drawer.Screen
-        name="InviteScreen"
-        component={InviteScreen}
-        options={{
-          title: "Invite",
-          drawerIcon: ({ color, size }) => (
-            <Ionicons name="person-add-outline" size={size} color={color} />
-          ),
-        }}
-      />
+      {/* ✅ Invite Screen accessible via drawer - Only for caregivers */}
+      {role === "caregiver" && (
+        <Drawer.Screen
+          name="InviteScreen"
+          component={InviteScreen}
+          options={{
+            title: "Invite",
+            drawerIcon: ({ color, size }) => (
+              <Ionicons name="person-add-outline" size={size} color={color} />
+            ),
+          }}
+        />
+      )}
 
       <Drawer.Screen
         name="Logout"

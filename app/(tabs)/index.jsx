@@ -105,7 +105,7 @@ export default function AuthPage() {
           name: registerName,
           email: registerEmail,
           role,
-          ...(role === 'caregiver' ? { patients: [] } : {}),
+          ...(role === 'caregiver' ? { childs: [] } : {}),
         });
       }
 
