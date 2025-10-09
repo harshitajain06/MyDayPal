@@ -1,15 +1,15 @@
 import { useRoute } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { useNavigationData } from "../../contexts/NavigationContext";
 import useSchedules from "../../hooks/useSchedules";
@@ -289,7 +289,7 @@ export default function ScheduleBuilder() {
     setIsAutoSaving(true);
     try {
       const currentScheduleId = scheduleId || existingScheduleId;
-      if (currentScheduleId && typeof currentScheduleId === 'string') {
+      if (currentScheduleId && typeof currentScheduleId === 'string' && currentScheduleId.trim() !== '') {
         // Update existing schedule
         console.log("Updating existing schedule:", currentScheduleId);
         await updateSchedule(currentScheduleId, {
@@ -361,9 +361,10 @@ export default function ScheduleBuilder() {
         routineType: routine?.title || "Custom"
       };
 
-      if (scheduleId || existingScheduleId) {
+      const currentScheduleId = scheduleId || existingScheduleId;
+      if (currentScheduleId && typeof currentScheduleId === 'string' && currentScheduleId.trim() !== '') {
         // Update existing schedule
-        await updateSchedule(scheduleId || existingScheduleId, scheduleData);
+        await updateSchedule(currentScheduleId, scheduleData);
         Alert.alert("Success", "Schedule updated successfully!");
       } else {
         // Create new schedule
@@ -396,7 +397,7 @@ export default function ScheduleBuilder() {
     }
 
     const currentScheduleId = scheduleId || existingScheduleId;
-    if (!currentScheduleId || typeof currentScheduleId !== 'string') {
+    if (!currentScheduleId || typeof currentScheduleId !== 'string' || currentScheduleId.trim() === '') {
       Alert.alert("Error", "No schedule ID found. Please create a new schedule first.");
       return;
     }
@@ -424,7 +425,7 @@ export default function ScheduleBuilder() {
     }
 
     const currentScheduleId = scheduleId || existingScheduleId;
-    if (!currentScheduleId || typeof currentScheduleId !== 'string') {
+    if (!currentScheduleId || typeof currentScheduleId !== 'string' || currentScheduleId.trim() === '') {
       Alert.alert("Error", "No schedule ID found. Cannot delete schedule.");
       return;
     }
@@ -458,7 +459,7 @@ export default function ScheduleBuilder() {
     // Auto-save to Firebase
     try {
       const currentScheduleId = scheduleId || existingScheduleId;
-      if (currentScheduleId && typeof currentScheduleId === 'string') {
+      if (currentScheduleId && typeof currentScheduleId === 'string' && currentScheduleId.trim() !== '') {
         // Update existing schedule
         await updateSchedule(currentScheduleId, {
           name: scheduleName,
@@ -506,7 +507,7 @@ export default function ScheduleBuilder() {
     // Auto-save to Firebase
     try {
       const currentScheduleId = scheduleId || existingScheduleId;
-      if (currentScheduleId && typeof currentScheduleId === 'string') {
+      if (currentScheduleId && typeof currentScheduleId === 'string' && currentScheduleId.trim() !== '') {
         // Update existing schedule
         await updateSchedule(currentScheduleId, {
           name: scheduleName,
@@ -828,7 +829,7 @@ export default function ScheduleBuilder() {
                       );
                       
                       const currentScheduleId = scheduleId || existingScheduleId;
-                      if (currentScheduleId && typeof currentScheduleId === 'string') {
+                      if (currentScheduleId && typeof currentScheduleId === 'string' && currentScheduleId.trim() !== '') {
                         // Update existing schedule
                         await updateSchedule(currentScheduleId, {
                           name: scheduleName,

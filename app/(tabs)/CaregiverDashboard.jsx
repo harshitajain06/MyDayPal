@@ -17,12 +17,13 @@ import useUser from "../../hooks/useUser";
 
 export default function CaregiverDashboard({ navigation }) {
   const { userData, loading: userLoading } = useUser();
-  const { schedules, loading: schedulesLoading, getPublishedSchedules, getDraftSchedules } = useSchedules();
+  const { schedules, loading: schedulesLoading, getPublishedSchedules, getDraftSchedules, refreshSchedules } = useSchedules();
   const { activities: recentActivities, loading: activitiesLoading } = useRecentActivities();
   const { setRoutineData } = useNavigationData();
   const userName = userData?.name || "User";
   const [displaySchedules, setDisplaySchedules] = useState([]);
   const [timerModalVisible, setTimerModalVisible] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Refresh schedules when screen comes into focus
   useFocusEffect(
@@ -30,6 +31,24 @@ export default function CaregiverDashboard({ navigation }) {
       console.log("CaregiverDashboard focused - schedules should auto-refresh via onSnapshot");
     }, [])
   );
+
+  // Handle manual refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      // Trigger refresh of schedules
+      await refreshSchedules();
+      console.log("Manual refresh triggered");
+      
+      // Add a small delay to show the refresh animation
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 1500);
+    } catch (error) {
+      console.error("Error refreshing schedules:", error);
+      setIsRefreshing(false);
+    }
+  };
 
   // Update display schedules when schedules change
   useEffect(() => {
@@ -219,7 +238,24 @@ export default function CaregiverDashboard({ navigation }) {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         {/* Header */}
-       
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.logo}>MyDayPal</Text>
+          </View>
+          <View style={styles.headerRight}>
+            <TouchableOpacity 
+              style={styles.refreshButton}
+              onPress={handleRefresh}
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? (
+                <ActivityIndicator size="small" color="#20B2AA" />
+              ) : (
+                <Text style={styles.refreshIcon}>🔄</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* Greeting and Main Actions */}
         <View style={styles.greetingSection}>
@@ -372,6 +408,21 @@ const styles = StyleSheet.create({
   },
   iconText: {
     fontSize: 18,
+  },
+  refreshButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "#f8f9fa",
+    borderWidth: 1,
+    borderColor: "#dee2e6",
+    justifyContent: "center",
+    alignItems: "center",
+    minWidth: 40,
+    minHeight: 40,
+  },
+  refreshIcon: {
+    fontSize: 18,
+    color: "#20B2AA",
   },
   greetingSection: {
     padding: 20,

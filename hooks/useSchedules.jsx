@@ -18,6 +18,7 @@ export default function useSchedules() {
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const db = getFirestore();
 
@@ -28,6 +29,9 @@ export default function useSchedules() {
       setLoading(false);
       return;
     }
+
+    let unsubscribes = [];
+    let isMounted = true;
 
     const fetchSchedules = async () => {
       try {
@@ -73,9 +77,9 @@ export default function useSchedules() {
 
         // Execute all queries and combine results
         const allSchedules = new Map(); // Use Map to avoid duplicates
-        const unsubscribes = [];
         
         const updateSchedules = () => {
+          if (!isMounted) return;
           const sortedSchedules = Array.from(allSchedules.values()).sort((a, b) => 
             new Date(b.updatedAt) - new Date(a.updatedAt)
           );
@@ -87,6 +91,7 @@ export default function useSchedules() {
         
         for (const q of queries) {
           const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (!isMounted) return;
             const schedulesData = snapshot.docs.map((doc) => ({
               id: doc.id,
               ...doc.data(),
@@ -102,6 +107,7 @@ export default function useSchedules() {
             // Update the state with all schedules
             updateSchedules();
           }, (error) => {
+            if (!isMounted) return;
             console.error("Error fetching schedules:", error);
             setError(error.message);
             setLoading(false);
@@ -109,26 +115,26 @@ export default function useSchedules() {
           
           unsubscribes.push(unsubscribe);
         }
-        
-        // Return cleanup function
-        return () => {
-          unsubscribes.forEach(unsubscribe => unsubscribe());
-        };
       } catch (error) {
+        if (!isMounted) return;
         console.error("Error setting up schedule queries:", error);
         setError(error.message);
         setLoading(false);
       }
     };
 
-    const cleanup = fetchSchedules();
+    fetchSchedules();
     
     return () => {
-      if (cleanup) {
-        cleanup();
-      }
+      isMounted = false;
+      unsubscribes.forEach(unsubscribe => {
+        if (unsubscribe && typeof unsubscribe === 'function') {
+          unsubscribe();
+        }
+      });
+      unsubscribes = [];
     };
-  }, []);
+  }, [refreshTrigger]);
 
   // Create a new schedule
   const createSchedule = async (scheduleData) => {
@@ -164,6 +170,11 @@ export default function useSchedules() {
   // Update an existing schedule
   const updateSchedule = async (scheduleId, updateData) => {
     try {
+      // Validate scheduleId is a non-empty string
+      if (!scheduleId || typeof scheduleId !== 'string' || scheduleId.trim() === '') {
+        throw new Error("Invalid schedule ID: must be a non-empty string");
+      }
+      
       const scheduleRef = doc(db, "schedules", scheduleId);
       const updatePayload = {
         ...updateData,
@@ -181,6 +192,11 @@ export default function useSchedules() {
   // Delete a schedule
   const deleteSchedule = async (scheduleId) => {
     try {
+      // Validate scheduleId is a non-empty string
+      if (!scheduleId || typeof scheduleId !== 'string' || scheduleId.trim() === '') {
+        throw new Error("Invalid schedule ID: must be a non-empty string");
+      }
+      
       await deleteDoc(doc(db, "schedules", scheduleId));
       return true;
     } catch (error) {
@@ -192,6 +208,11 @@ export default function useSchedules() {
   // Get a specific schedule by ID
   const getScheduleById = async (scheduleId) => {
     try {
+      // Validate scheduleId is a non-empty string
+      if (!scheduleId || typeof scheduleId !== 'string' || scheduleId.trim() === '') {
+        throw new Error("Invalid schedule ID: must be a non-empty string");
+      }
+      
       const scheduleRef = doc(db, "schedules", scheduleId);
       const scheduleSnap = await getDoc(scheduleRef);
       
@@ -275,10 +296,16 @@ export default function useSchedules() {
   };
 
   // Manual refresh function
-  const refreshSchedules = () => {
+  const refreshSchedules = async () => {
     console.log("Manually refreshing schedules...");
-    // The onSnapshot listeners will automatically update when data changes
-    // This function can be used to trigger a re-fetch if needed
+    try {
+      // Force a refresh by incrementing the refresh trigger
+      // This will cause the useEffect to re-run and re-establish the listeners
+      setRefreshTrigger(prev => prev + 1);
+      console.log("Manual refresh triggered - listeners will be re-established");
+    } catch (error) {
+      console.error("Error during manual refresh:", error);
+    }
   };
 
   return {
