@@ -39,26 +39,26 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#567396',
   },
   subtitle: {
-    fontSize: 45,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#567396',
-    marginBottom: 20,
+    marginBottom: 8,
   },
   author: {
-    fontSize: 14,
+    fontSize: 10,
     color: '#567396',
-    marginBottom: 20,
+    marginBottom: 8,
   },
   description: {
-    fontSize: 18,
+    fontSize: 11,
     color: '#567396',
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 14,
   },
 });
 

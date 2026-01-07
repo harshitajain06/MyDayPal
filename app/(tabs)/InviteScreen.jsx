@@ -34,8 +34,8 @@ export default function CaregiverInviteScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center" },
-  button: { backgroundColor: "#007AFF", padding: 15, borderRadius: 10 },
-  buttonText: { color: "white", fontWeight: "bold" },
-  code: { marginTop: 20, fontSize: 20, fontWeight: "bold" },
+  container: { flex: 1, justifyContent: "center", alignItems: "center", padding: 10 },
+  button: { backgroundColor: "#007AFF", padding: 8, borderRadius: 6 },
+  buttonText: { color: "white", fontWeight: "bold", fontSize: 10 },
+  code: { marginTop: 8, fontSize: 12, fontWeight: "bold", textAlign: "center" },
 });

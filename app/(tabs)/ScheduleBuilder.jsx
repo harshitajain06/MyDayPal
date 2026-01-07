@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import EmojiIcon from "../../components/EmojiIcon";
 import { useNavigationData } from "../../contexts/NavigationContext";
 import useSchedules from "../../hooks/useSchedules";
 import useUser from "../../hooks/useUser";
@@ -568,7 +569,10 @@ export default function ScheduleBuilder() {
         {/* Read-only indicator - only show for teachers viewing caregiver-created routines */}
         {!canEdit && userData?.role === 'teacher' && (
           <View style={styles.readOnlyBanner}>
-            <Text style={styles.readOnlyText}>📖 Read-only mode - You can view this caregiver-created routine but cannot edit it</Text>
+            <View style={styles.readOnlyBannerContent}>
+              <EmojiIcon emoji="📖" size={12} color="#856404" />
+              <Text style={styles.readOnlyText}> Read-only mode - You can view this caregiver-created routine but cannot edit it</Text>
+            </View>
           </View>
         )}
         
@@ -599,7 +603,7 @@ export default function ScheduleBuilder() {
               {isPublishing ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={styles.actionButtonIcon}>▶️</Text>
+                <EmojiIcon emoji="▶️" size={10} color="#fff" />
               )}
               <Text style={[styles.actionButtonText, styles.publishButtonText]}>
                 {isPublishing ? "Publishing..." : "Publish"}
@@ -612,7 +616,7 @@ export default function ScheduleBuilder() {
                 onPress={canEdit ? () => setShowUpdateModal(true) : undefined}
                 disabled={!canEdit}
               >
-                <Text style={styles.actionButtonIcon}>✏️</Text>
+                <EmojiIcon emoji="✏️" size={10} color="#fff" />
                 <Text style={[styles.actionButtonText, styles.updateButtonText]}>Update</Text>
               </TouchableOpacity>
             )}
@@ -623,7 +627,7 @@ export default function ScheduleBuilder() {
                 onPress={canEdit ? () => setShowDeleteModal(true) : undefined}
                 disabled={!canEdit}
               >
-                <Text style={styles.actionButtonIcon}>🗑️</Text>
+                <EmojiIcon emoji="🗑️" size={10} color="#fff" />
                 <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Delete</Text>
               </TouchableOpacity>
             )}
@@ -648,7 +652,9 @@ export default function ScheduleBuilder() {
                   onPress={canEdit ? () => setSelectedStep(step) : undefined}
                 >
                   <Text style={styles.dragHandle}>⋮⋮</Text>
-                  <Text style={styles.stepIcon}>{step.icon}</Text>
+                  <View style={styles.stepIconContainer}>
+                    <EmojiIcon emoji={step.icon} size={14} />
+                  </View>
                   <View style={styles.stepInfo}>
                     <Text style={styles.stepName}>{step.name}</Text>
                     <Text style={styles.stepDuration}>{step.duration}</Text>
@@ -658,7 +664,7 @@ export default function ScheduleBuilder() {
                     style={styles.deleteStepBtn}
                     onPress={() => deleteStep(step.id)}
                   >
-                    <Text style={styles.deleteStepIcon}>🗑️</Text>
+                    <EmojiIcon emoji="🗑️" size={12} color="#dc3545" />
                   </TouchableOpacity>
                 </TouchableOpacity>
               ))}
@@ -750,11 +756,14 @@ export default function ScheduleBuilder() {
             {/* Icon Selection */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Icon</Text>
-              <TextInput
-                style={styles.iconSearchInput}
-                placeholder="🔍 Search Icons"
-                placeholderTextColor="#999"
-              />
+              <View style={styles.iconSearchContainer}>
+                <EmojiIcon emoji="🔍" size={14} color="#999" style={styles.iconSearchIcon} />
+                <TextInput
+                  style={styles.iconSearchInput}
+                  placeholder="Search Icons"
+                  placeholderTextColor="#999"
+                />
+              </View>
               <View style={styles.iconGrid}>
                 {icons.map((icon, index) => (
                   <TouchableOpacity
@@ -765,7 +774,7 @@ export default function ScheduleBuilder() {
                     ]}
                     onPress={canEdit ? () => updateSelectedStep('icon', icon) : undefined}
                   >
-                    <Text style={styles.iconText}>{icon}</Text>
+                    <EmojiIcon emoji={icon} size={16} color={selectedStep.icon === icon ? "#fff" : undefined} />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -791,11 +800,11 @@ export default function ScheduleBuilder() {
               <Text style={styles.inputLabel}>Audio Prompt</Text>
               <View style={styles.audioButtons}>
                 <TouchableOpacity style={styles.audioButton}>
-                  <Text style={styles.audioButtonIcon}>📤</Text>
+                  <EmojiIcon emoji="📤" size={10} />
                   <Text style={styles.audioButtonText}>Upload Audio</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.audioButton}>
-                  <Text style={styles.audioButtonIcon}>🎤</Text>
+                  <EmojiIcon emoji="🎤" size={10} />
                   <Text style={styles.audioButtonText}>Record</Text>
                 </TouchableOpacity>
               </View>
@@ -812,7 +821,7 @@ export default function ScheduleBuilder() {
                 editable={canEdit}
                 placeholderTextColor="#999"
                 multiline
-                numberOfLines={4}
+                numberOfLines={2}
       />
     </View>
 
@@ -962,8 +971,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#e9ecef",
@@ -973,13 +982,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logo: {
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: "bold",
     color: "#20B2AA",
-    marginRight: 8,
+    marginRight: 4,
   },
   pageTitle: {
-    fontSize: 16,
+    fontSize: 12,
     color: "#6c757d",
   },
   headerRight: {
@@ -993,9 +1002,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   scheduleSection: {
-    padding: 20,
+    padding: 8,
     backgroundColor: "#fff",
-    marginBottom: 20,
+    marginBottom: 6,
   },
   scheduleNameContainer: {
     position: "relative",
@@ -1004,26 +1013,26 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8f9fa",
     borderWidth: 1,
     borderColor: "#dee2e6",
-    padding: 15,
-    borderRadius: 8,
-    fontSize: 16,
-    marginBottom: 15,
+    padding: 6,
+    borderRadius: 4,
+    fontSize: 12,
+    marginBottom: 6,
   },
   autoSaveIndicator: {
     position: "absolute",
-    right: 15,
-    top: 15,
+    right: 8,
+    top: 6,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(32, 178, 170, 0.1)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
   autoSaveText: {
-    fontSize: 12,
+    fontSize: 10,
     color: "#20B2AA",
-    marginLeft: 4,
+    marginLeft: 3,
     fontWeight: "500",
   },
   actionButtons: {
@@ -1035,10 +1044,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    marginHorizontal: 5,
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+    marginHorizontal: 2,
     backgroundColor: "#f8f9fa",
     borderWidth: 1,
     borderColor: "#dee2e6",
@@ -1056,11 +1065,10 @@ const styles = StyleSheet.create({
     borderColor: "#dc3545",
   },
   actionButtonIcon: {
-    fontSize: 16,
-    marginRight: 8,
+    marginRight: 3,
   },
   actionButtonText: {
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: "600",
     color: "#2c3e50",
   },
@@ -1078,15 +1086,15 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     flexDirection: "row",
-    paddingHorizontal: 20,
+    paddingHorizontal: 8,
     flex: 1,
   },
   stepsPanel: {
     flex: 1,
-    marginRight: 10,
+    marginRight: 4,
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 15,
+    borderRadius: 6,
+    padding: 6,
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1094,109 +1102,115 @@ const styles = StyleSheet.create({
   },
   editPanel: {
     flex: 1,
-    marginLeft: 10,
+    marginLeft: 4,
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 15,
+    borderRadius: 6,
+    padding: 6,
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   panelHeader: {
-    marginBottom: 15,
+    marginBottom: 4,
   },
   panelTitle: {
-    fontSize: 18,
+    fontSize: 12,
     fontWeight: "bold",
     color: "#2c3e50",
   },
   stepsList: {
-    maxHeight: 300,
+    maxHeight: 150,
   },
   stepItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
+    padding: 5,
+    borderRadius: 4,
+    marginBottom: 3,
     backgroundColor: "#f8f9fa",
   },
   selectedStepItem: {
     backgroundColor: "#e3f2fd",
   },
   dragHandle: {
-    fontSize: 16,
+    fontSize: 10,
     color: "#6c757d",
-    marginRight: 10,
+    marginRight: 4,
   },
-  stepIcon: {
-    fontSize: 20,
-    marginRight: 12,
+  stepIconContainer: {
+    marginRight: 6,
+    justifyContent: "center",
+    alignItems: "center",
   },
   stepInfo: {
     flex: 1,
   },
   stepName: {
-    fontSize: 16,
+    fontSize: 11,
     fontWeight: "600",
     color: "#2c3e50",
-    marginBottom: 2,
+    marginBottom: 0,
   },
   stepDuration: {
-    fontSize: 12,
+    fontSize: 9,
     color: "#6c757d",
-    marginBottom: 2,
+    marginBottom: 0,
   },
   stepNumber: {
-    fontSize: 12,
+    fontSize: 8,
     color: "#6c757d",
   },
   deleteStepBtn: {
-    padding: 5,
-  },
-  deleteStepIcon: {
-    fontSize: 16,
-    color: "#dc3545",
+    padding: 3,
   },
   addStepButton: {
     backgroundColor: "#20B2AA",
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 4,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 4,
   },
   addStepButtonText: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: "600",
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 6,
   },
   inputLabel: {
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: "600",
     color: "#2c3e50",
-    marginBottom: 8,
+    marginBottom: 3,
   },
   textInput: {
     backgroundColor: "#f8f9fa",
     borderWidth: 1,
     borderColor: "#dee2e6",
-    padding: 12,
-    borderRadius: 8,
-    fontSize: 16,
+    padding: 6,
+    borderRadius: 4,
+    fontSize: 11,
   },
-  iconSearchInput: {
+  iconSearchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#f8f9fa",
     borderWidth: 1,
     borderColor: "#dee2e6",
-    padding: 12,
-    borderRadius: 8,
-    fontSize: 16,
-    marginBottom: 10,
+    borderRadius: 4,
+    marginBottom: 4,
+    paddingLeft: 6,
+  },
+  iconSearchIcon: {
+    marginRight: 4,
+  },
+  iconSearchInput: {
+    flex: 1,
+    padding: 6,
+    fontSize: 11,
   },
   iconGrid: {
     flexDirection: "row",
@@ -1204,13 +1218,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: "#f8f9fa",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 3,
     borderWidth: 1,
     borderColor: "#dee2e6",
   },
@@ -1226,15 +1240,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8f9fa",
     borderWidth: 1,
     borderColor: "#dee2e6",
-    padding: 12,
-    borderRadius: 8,
-    fontSize: 16,
-    width: 80,
-    marginRight: 10,
+    padding: 6,
+    borderRadius: 4,
+    fontSize: 11,
+    width: 50,
+    marginRight: 4,
     textAlign: "center",
   },
   durationLabel: {
-    fontSize: 14,
+    fontSize: 10,
     color: "#6c757d",
   },
   audioButtons: {
@@ -1246,20 +1260,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    marginHorizontal: 5,
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+    marginHorizontal: 2,
     backgroundColor: "#f8f9fa",
     borderWidth: 1,
     borderColor: "#dee2e6",
   },
-  audioButtonIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
   audioButtonText: {
-    fontSize: 14,
+    fontSize: 9,
     fontWeight: "600",
     color: "#2c3e50",
   },
@@ -1267,23 +1277,23 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8f9fa",
     borderWidth: 1,
     borderColor: "#dee2e6",
-    padding: 12,
-    borderRadius: 8,
-    fontSize: 16,
+    padding: 6,
+    borderRadius: 4,
+    fontSize: 11,
     textAlignVertical: "top",
-    minHeight: 80,
+    minHeight: 40,
   },
   testStepButton: {
     backgroundColor: "#20B2AA",
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 4,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 4,
   },
   testStepButtonText: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: "600",
   },
   loadingContainer: {
@@ -1299,30 +1309,30 @@ const styles = StyleSheet.create({
   },
   addStepForm: {
     backgroundColor: "#f8f9fa",
-    borderRadius: 8,
-    padding: 15,
-    marginTop: 10,
+    borderRadius: 4,
+    padding: 6,
+    marginTop: 4,
     borderWidth: 1,
     borderColor: "#dee2e6",
   },
   addStepFormTitle: {
-    fontSize: 16,
+    fontSize: 11,
     fontWeight: "bold",
     color: "#2c3e50",
-    marginBottom: 15,
+    marginBottom: 4,
     textAlign: "center",
   },
   addStepFormButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 15,
+    marginTop: 4,
   },
   formButton: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 6,
-    marginHorizontal: 5,
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+    marginHorizontal: 2,
     alignItems: "center",
   },
   cancelButton: {
@@ -1333,22 +1343,22 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: "600",
   },
   saveButtonText: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: "600",
   },
   noStepSelected: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 40,
+    paddingVertical: 10,
   },
   noStepSelectedText: {
-    fontSize: 16,
+    fontSize: 10,
     color: "#6c757d",
     textAlign: "center",
   },
@@ -1463,14 +1473,18 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff3cd",
     borderColor: "#ffeaa7",
     borderWidth: 1,
-    padding: 12,
-    margin: 16,
-    borderRadius: 8,
+    padding: 6,
+    margin: 6,
+    borderRadius: 4,
+    alignItems: "center",
+  },
+  readOnlyBannerContent: {
+    flexDirection: "row",
     alignItems: "center",
   },
   readOnlyText: {
     color: "#856404",
-    fontSize: 14,
+    fontSize: 9,
     fontWeight: "500",
     textAlign: "center",
   },

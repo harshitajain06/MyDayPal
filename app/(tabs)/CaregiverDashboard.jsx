@@ -10,6 +10,7 @@ import {
   View
 } from "react-native";
 import TimerModal from "../../components/TimerModal";
+import EmojiIcon from "../../components/EmojiIcon";
 import { useNavigationData } from "../../contexts/NavigationContext";
 import useRecentActivities from "../../hooks/useRecentActivities";
 import useSchedules from "../../hooks/useSchedules";
@@ -304,7 +305,7 @@ export default function CaregiverDashboard({ navigation }) {
                   }
                 >
                   <View style={[styles.scheduleIcon, { backgroundColor: card.color }]}>
-                    <Text style={styles.scheduleIconText}>{card.icon}</Text>
+                    <EmojiIcon emoji={card.icon} size={24} color="#fff" />
                   </View>
                   <View style={styles.scheduleTitleContainer}>
                     <Text style={styles.scheduleTitle}>{card.title}</Text>
@@ -326,7 +327,10 @@ export default function CaregiverDashboard({ navigation }) {
                         : handleRoutineClick(card)
                     }
                   >
-                    <Text style={styles.startButtonText}>▶️ Start</Text>
+                    <View style={styles.startButtonContent}>
+                      <EmojiIcon emoji="▶️" size={14} color="#fff" />
+                      <Text style={styles.startButtonText}> Start</Text>
+                    </View>
                   </TouchableOpacity>
                 </TouchableOpacity>
               ))}
@@ -380,8 +384,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#e9ecef",
@@ -391,10 +395,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logo: {
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: "bold",
     color: "#20B2AA",
-    marginRight: 8,
+    marginRight: 4,
   },
   wifiIcon: {
     fontSize: 16,
@@ -410,35 +414,35 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   refreshButton: {
-    padding: 8,
-    borderRadius: 20,
+    padding: 4,
+    borderRadius: 12,
     backgroundColor: "#f8f9fa",
     borderWidth: 1,
     borderColor: "#dee2e6",
     justifyContent: "center",
     alignItems: "center",
-    minWidth: 40,
-    minHeight: 40,
+    minWidth: 28,
+    minHeight: 28,
   },
   refreshIcon: {
-    fontSize: 18,
+    fontSize: 12,
     color: "#20B2AA",
   },
   greetingSection: {
-    padding: 20,
+    padding: 8,
     backgroundColor: "#fff",
-    marginBottom: 20,
+    marginBottom: 6,
   },
   greeting: {
-    fontSize: 28,
+    fontSize: 16,
     fontWeight: "bold",
     color: "#2c3e50",
-    marginBottom: 8,
+    marginBottom: 3,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 11,
     color: "#6c757d",
-    marginBottom: 25,
+    marginBottom: 8,
   },
   mainActions: {
     flexDirection: "row",
@@ -446,11 +450,11 @@ const styles = StyleSheet.create({
   },
   mainButton: {
     flex: 1,
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    borderRadius: 6,
     alignItems: "center",
-    marginHorizontal: 5,
+    marginHorizontal: 2,
   },
   newScheduleBtn: {
     backgroundColor: "#20B2AA",
@@ -459,17 +463,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFD700",
   },
   mainButtonIcon: {
-    fontSize: 20,
-    marginBottom: 5,
+    fontSize: 14,
+    marginBottom: 2,
   },
   mainButtonText: {
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: "600",
     color: "#2c3e50",
   },
   mainContent: {
     flexDirection: "row",
-    paddingHorizontal: 20,
+    paddingHorizontal: 8,
   },
   schedulesSection: {
     flex: 1,
@@ -484,15 +488,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 15,
+    marginBottom: 4,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 12,
     fontWeight: "bold",
     color: "#2c3e50",
   },
   viewAllLink: {
-    fontSize: 14,
+    fontSize: 10,
     color: "#20B2AA",
     fontWeight: "600",
   },
@@ -504,9 +508,9 @@ const styles = StyleSheet.create({
   scheduleCard: {
     width: "48%",
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
+    borderRadius: 6,
+    padding: 6,
+    marginBottom: 6,
     alignItems: "center",
     shadowColor: "#000",
     shadowOpacity: 0.1,
@@ -514,22 +518,22 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   scheduleIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 4,
   },
   scheduleIconText: {
-    fontSize: 24,
+    fontSize: 14,
   },
   scheduleTitleContainer: {
     alignItems: "center",
     marginBottom: 5,
   },
   scheduleTitle: {
-    fontSize: 16,
+    fontSize: 11,
     fontWeight: "600",
     color: "#2c3e50",
     textAlign: "center",
@@ -555,31 +559,36 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   scheduleSteps: {
-    fontSize: 13,
+    fontSize: 9,
     color: "#20B2AA",
-    marginBottom: 10,
+    marginBottom: 4,
     fontWeight: "600",
     backgroundColor: "rgba(32, 178, 170, 0.1)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 6,
     textAlign: "center",
   },
   startButton: {
     backgroundColor: "#20B2AA",
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  startButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   startButtonText: {
     color: "#fff",
-    fontSize: 12,
+    fontSize: 9,
     fontWeight: "600",
   },
   activityList: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 15,
+    borderRadius: 6,
+    padding: 6,
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -588,7 +597,7 @@ const styles = StyleSheet.create({
   activityItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 15,
+    marginBottom: 4,
   },
   activityLeft: {
     flexDirection: "row",
@@ -596,17 +605,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   activityIcon: {
-    fontSize: 16,
-    marginRight: 12,
+    fontSize: 12,
+    marginRight: 6,
   },
   activityTitle: {
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: "600",
     color: "#2c3e50",
-    marginBottom: 2,
+    marginBottom: 0,
   },
   activityTime: {
-    fontSize: 12,
+    fontSize: 8,
     color: "#6c757d",
   },
   loadingContainer: {

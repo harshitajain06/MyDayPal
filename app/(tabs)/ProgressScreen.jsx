@@ -10,6 +10,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import EmojiIcon from '../../components/EmojiIcon';
 import useSchedules from '../../hooks/useSchedules';
 import useUser from '../../hooks/useUser';
 
@@ -202,7 +203,7 @@ export default function ProgressScreen() {
             {recentActivities.map((activity) => (
               <View key={activity.id} style={styles.activityItem}>
                 <View style={styles.activityIcon}>
-                  <Text style={styles.activityIconText}>{activity.icon}</Text>
+                  <EmojiIcon emoji={activity.icon} size={16} color="#20B2AA" />
                 </View>
                 <View style={styles.activityContent}>
                   <Text style={styles.activityTitle}>
@@ -229,14 +230,14 @@ export default function ProgressScreen() {
               style={styles.quickActionButton}
               onPress={() => navigation.navigate('ScheduleBuilder')}
             >
-              <Text style={styles.quickActionIcon}>➕</Text>
+              <EmojiIcon emoji="➕" size={20} color="#20B2AA" />
               <Text style={styles.quickActionText}>Create Schedule</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.quickActionButton}
               onPress={() => navigation.navigate('CaregiverDashboard')}
             >
-              <Text style={styles.quickActionIcon}>📊</Text>
+              <EmojiIcon emoji="📊" size={20} color="#20B2AA" />
               <Text style={styles.quickActionText}>View Dashboard</Text>
             </TouchableOpacity>
           </View>
@@ -266,34 +267,34 @@ const styles = StyleSheet.create({
     color: '#6c757d',
   },
   header: {
-    padding: 20,
+    padding: 8,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#2c3e50',
-    marginBottom: 5,
+    marginBottom: 2,
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: 10,
     color: '#6c757d',
   },
   periodSelector: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     backgroundColor: '#fff',
-    marginBottom: 10,
+    marginBottom: 6,
   },
   periodButton: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    marginHorizontal: 5,
-    borderRadius: 20,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    marginHorizontal: 2,
+    borderRadius: 12,
     backgroundColor: '#f8f9fa',
     alignItems: 'center',
   },
@@ -301,7 +302,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#20B2AA',
   },
   periodButtonText: {
-    fontSize: 14,
+    fontSize: 9,
     fontWeight: '600',
     color: '#6c757d',
   },
@@ -310,15 +311,15 @@ const styles = StyleSheet.create({
   },
   statsContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 8,
+    marginBottom: 6,
   },
   statCard: {
     flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    marginHorizontal: 5,
+    borderRadius: 6,
+    padding: 8,
+    marginHorizontal: 2,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.1,
@@ -326,19 +327,19 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   statNumber: {
-    fontSize: 32,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#20B2AA',
-    marginBottom: 5,
+    marginBottom: 2,
   },
   statLabel: {
-    fontSize: 14,
+    fontSize: 9,
     color: '#6c757d',
-    marginBottom: 10,
+    marginBottom: 4,
     textAlign: 'center',
   },
   statSubtext: {
-    fontSize: 12,
+    fontSize: 8,
     color: '#20B2AA',
     fontWeight: '500',
   },
@@ -356,15 +357,15 @@ const styles = StyleSheet.create({
   },
   detailedStats: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 8,
+    marginBottom: 6,
   },
   detailCard: {
     flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
-    marginHorizontal: 5,
+    borderRadius: 6,
+    padding: 6,
+    marginHorizontal: 2,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.1,
@@ -372,31 +373,31 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   detailNumber: {
-    fontSize: 24,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#2c3e50',
-    marginBottom: 5,
+    marginBottom: 2,
   },
   detailLabel: {
-    fontSize: 12,
+    fontSize: 8,
     color: '#6c757d',
-    marginBottom: 3,
+    marginBottom: 1,
     textAlign: 'center',
   },
   detailSubtext: {
-    fontSize: 10,
+    fontSize: 7,
     color: '#20B2AA',
     textAlign: 'center',
   },
   section: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 8,
+    marginBottom: 6,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 12,
     fontWeight: 'bold',
     color: '#2c3e50',
-    marginBottom: 15,
+    marginBottom: 4,
   },
   overviewCards: {
     flexDirection: 'row',
@@ -404,9 +405,9 @@ const styles = StyleSheet.create({
   overviewCard: {
     flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
-    marginHorizontal: 5,
+    borderRadius: 6,
+    padding: 6,
+    marginHorizontal: 2,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.1,
@@ -414,20 +415,20 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   overviewNumber: {
-    fontSize: 24,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#20B2AA',
-    marginBottom: 5,
+    marginBottom: 2,
   },
   overviewLabel: {
-    fontSize: 12,
+    fontSize: 8,
     color: '#6c757d',
     textAlign: 'center',
   },
   activityList: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
+    borderRadius: 6,
+    padding: 6,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -436,43 +437,43 @@ const styles = StyleSheet.create({
   activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 4,
     borderBottomWidth: 1,
     borderBottomColor: '#f8f9fa',
   },
   activityIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: '#f8f9fa',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 15,
+    marginRight: 6,
   },
   activityIconText: {
-    fontSize: 18,
+    fontSize: 12,
   },
   activityContent: {
     flex: 1,
   },
   activityTitle: {
-    fontSize: 16,
+    fontSize: 10,
     fontWeight: '600',
     color: '#2c3e50',
-    marginBottom: 3,
+    marginBottom: 1,
   },
   activityTime: {
-    fontSize: 12,
+    fontSize: 8,
     color: '#6c757d',
   },
   activityStatus: {
     backgroundColor: '#f8f9fa',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
   activityStatusText: {
-    fontSize: 10,
+    fontSize: 7,
     color: '#6c757d',
     fontWeight: '500',
   },
@@ -482,9 +483,9 @@ const styles = StyleSheet.create({
   quickActionButton: {
     flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    marginHorizontal: 5,
+    borderRadius: 6,
+    padding: 8,
+    marginHorizontal: 2,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.1,
@@ -492,11 +493,11 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   quickActionIcon: {
-    fontSize: 24,
-    marginBottom: 8,
+    fontSize: 14,
+    marginBottom: 3,
   },
   quickActionText: {
-    fontSize: 14,
+    fontSize: 9,
     fontWeight: '600',
     color: '#2c3e50',
     textAlign: 'center',

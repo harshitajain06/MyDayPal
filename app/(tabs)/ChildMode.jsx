@@ -37,6 +37,6 @@ export default function ChildMode() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", alignItems: "center" },
-  task: { fontSize: 24, marginBottom: 20 },
-  btn: { padding: 20, backgroundColor: "#90ee90", borderRadius: 10 },
+  task: { fontSize: 14, marginBottom: 8, fontWeight: "600", color: "#2c3e50" },
+  btn: { padding: 8, backgroundColor: "#90ee90", borderRadius: 6 },
 });
