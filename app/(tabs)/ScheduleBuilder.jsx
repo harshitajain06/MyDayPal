@@ -1,3 +1,4 @@
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRoute } from "@react-navigation/native";
 import { Audio } from "expo-av";
 import * as DocumentPicker from "expo-document-picker";
@@ -6,6 +7,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -53,6 +55,7 @@ export default function ScheduleBuilder() {
   const [newStepName, setNewStepName] = useState("");
   const [newStepDuration, setNewStepDuration] = useState("2");
   const [newStepNotes, setNewStepNotes] = useState("");
+  const [newStepTime, setNewStepTime] = useState(null);
   const [showAddStepForm, setShowAddStepForm] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [scheduleId, setScheduleId] = useState(existingScheduleId || null);
@@ -63,6 +66,8 @@ export default function ScheduleBuilder() {
   const [recordingUri, setRecordingUri] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const recordingRef = useRef(null); // single source of truth for active recording
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [timePickerTarget, setTimePickerTarget] = useState(null); // 'selectedStep' or 'newStep'
 
   // Handle explicit "New Schedule" navigation requests (e.g., from dashboards)
   useEffect(() => {
@@ -298,8 +303,86 @@ export default function ScheduleBuilder() {
       ...step,
       colorTag: step.colorTag || colors[index % colors.length],
       voicePrompt: step.voicePrompt || `Time for ${step.name}! Come on, let's go!`,
-      audioNote: step.audioNote || null
+      audioNote: step.audioNote || null,
+      time: step.time || null
     }));
+  };
+
+  // Web-only time input using native browser clock/time UI
+  const WebTimeInput = ({ value, onChange, disabled }) => {
+    if (Platform.OS !== "web") return null;
+
+    return (
+      <input
+        type="time"
+        value={value || ""}
+        disabled={disabled}
+        onChange={(e) => {
+          if (onChange) {
+            onChange(e.target.value);
+          }
+        }}
+        style={{
+          width: "100%",
+          padding: 6,
+          borderRadius: 4,
+          border: "1px solid #dee2e6",
+          fontSize: 11,
+          boxSizing: "border-box",
+          backgroundColor: disabled ? "#f5f5f5" : "#ffffff",
+          color: "#2c3e50",
+        }}
+      />
+    );
+  };
+
+  const parseTimeToDate = (timeString) => {
+    const date = new Date();
+    if (!timeString || typeof timeString !== "string") {
+      date.setSeconds(0);
+      date.setMilliseconds(0);
+      return date;
+    }
+    const [hourStr, minuteStr] = timeString.split(":");
+    const hours = parseInt(hourStr, 10);
+    const minutes = parseInt(minuteStr, 10);
+    if (!isNaN(hours)) {
+      date.setHours(hours);
+    }
+    if (!isNaN(minutes)) {
+      date.setMinutes(minutes);
+    }
+    date.setSeconds(0);
+    date.setMilliseconds(0);
+    return date;
+  };
+
+  const formatDateToTimeString = (date) => {
+    if (!(date instanceof Date)) return null;
+    const hours = `${date.getHours()}`.padStart(2, "0");
+    const minutes = `${date.getMinutes()}`.padStart(2, "0");
+    return `${hours}:${minutes}`;
+  };
+
+  const handleTimeChange = (event, selectedDate) => {
+    // On Android, user can dismiss the picker
+    if (Platform.OS !== "ios") {
+      setShowTimePicker(false);
+    }
+
+    // For iOS, the picker stays open; we don't auto-close
+    if (event.type !== "set" || !selectedDate) {
+      return;
+    }
+
+    const timeString = formatDateToTimeString(selectedDate);
+    if (!timeString) return;
+
+    if (timePickerTarget === "selectedStep" && selectedStep) {
+      updateSelectedStep("time", timeString);
+    } else if (timePickerTarget === "newStep") {
+      setNewStepTime(timeString);
+    }
   };
 
   // Request audio permissions
@@ -490,7 +573,8 @@ export default function ScheduleBuilder() {
       notes: newStepNotes,
       colorTag: "#FF6B6B", // Default to first color
       voicePrompt: `Time for ${newStepName}! Come on, let's go!`,
-      audioNote: null
+      audioNote: null,
+      time: newStepTime || null
     };
     
     const updatedSteps = [...(steps || []), newStep];
@@ -502,6 +586,7 @@ export default function ScheduleBuilder() {
     setNewStepName("");
     setNewStepDuration("2");
     setNewStepNotes("");
+    setNewStepTime(null);
     setShowAddStepForm(false);
 
     // Auto-save to Firebase
@@ -551,6 +636,7 @@ export default function ScheduleBuilder() {
     setNewStepName("");
     setNewStepDuration("2");
     setNewStepNotes("");
+    setNewStepTime(null);
     setShowAddStepForm(false);
   };
 
@@ -886,6 +972,9 @@ export default function ScheduleBuilder() {
                   <View style={styles.stepInfo}>
                     <Text style={styles.stepName}>{step.name}</Text>
                     <Text style={styles.stepDuration}>{step.duration}</Text>
+                    {step.time && (
+                      <Text style={styles.stepTime}>⏰ {step.time}</Text>
+                    )}
                     <Text style={styles.stepNumber}>Step {step.stepNumber}</Text>
                   </View>
                   <TouchableOpacity
@@ -931,6 +1020,28 @@ export default function ScheduleBuilder() {
                     placeholder="2"
                     keyboardType="numeric"
                   />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Time of Day</Text>
+                  {Platform.OS === "web" ? (
+                    <WebTimeInput
+                      value={newStepTime || ""}
+                      onChange={setNewStepTime}
+                    />
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.timeButton}
+                      onPress={() => {
+                        setTimePickerTarget("newStep");
+                        setShowTimePicker(true);
+                      }}
+                    >
+                      <Text style={styles.timeButtonText}>
+                        {newStepTime ? `⏰ ${newStepTime}` : "Set time using clock"}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
 
                 <View style={styles.inputGroup}>
@@ -1021,6 +1132,31 @@ export default function ScheduleBuilder() {
                 />
                 <Text style={styles.durationLabel}>minutes</Text>
               </View>
+            </View>
+
+            {/* Time of Day */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Time of Day</Text>
+              {Platform.OS === "web" ? (
+                <WebTimeInput
+                  value={selectedStep.time || ""}
+                  onChange={canEdit ? (value) => updateSelectedStep("time", value) : undefined}
+                  disabled={!canEdit}
+                />
+              ) : (
+                <TouchableOpacity
+                  style={styles.timeButton}
+                  onPress={canEdit ? () => {
+                    setTimePickerTarget("selectedStep");
+                    setShowTimePicker(true);
+                  } : undefined}
+                  disabled={!canEdit}
+                >
+                  <Text style={styles.timeButtonText}>
+                    {selectedStep.time ? `⏰ ${selectedStep.time}` : "Set time using clock"}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Color Tag */}
@@ -1324,6 +1460,19 @@ export default function ScheduleBuilder() {
           </View>
         </View>
       )}
+
+      {showTimePicker && Platform.OS !== "web" && (
+        <DateTimePicker
+          value={
+            timePickerTarget === "selectedStep"
+              ? parseTimeToDate(selectedStep?.time)
+              : parseTimeToDate(newStepTime)
+          }
+          mode="time"
+          display={Platform.OS === "ios" ? "spinner" : "default"}
+          onChange={handleTimeChange}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -1531,6 +1680,11 @@ const styles = StyleSheet.create({
     color: "#6c757d",
     marginBottom: 0,
   },
+  stepTime: {
+    fontSize: 9,
+    color: "#555",
+    marginBottom: 0,
+  },
   stepNumber: {
     fontSize: 8,
     color: "#6c757d",
@@ -1624,6 +1778,20 @@ const styles = StyleSheet.create({
   durationLabel: {
     fontSize: 10,
     color: "#6c757d",
+  },
+  timeButton: {
+    backgroundColor: "#f8f9fa",
+    borderWidth: 1,
+    borderColor: "#dee2e6",
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  timeButtonText: {
+    fontSize: 11,
+    color: "#2c3e50",
   },
   audioButtons: {
     flexDirection: "row",
