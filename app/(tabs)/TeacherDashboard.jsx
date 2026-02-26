@@ -264,10 +264,15 @@ export default function TeacherDashboard({ navigation }) {
           <Text style={styles.subtitle}>Ready to start your day with MyDayPal?</Text>
           
           <View style={styles.mainActions}>
-      <TouchableOpacity
+          <TouchableOpacity
               style={[styles.mainButton, styles.newScheduleBtn]}
-        onPress={() => navigation.navigate("ScheduleBuilder")}
-      >
+              onPress={() =>
+                navigation.navigate("ScheduleBuilder", {
+                  mode: "new",
+                  resetKey: Date.now(),
+                })
+              }
+            >
               <Text style={styles.mainButtonIcon}>➕</Text>
               <Text style={styles.mainButtonText}>New Schedule</Text>
             </TouchableOpacity>

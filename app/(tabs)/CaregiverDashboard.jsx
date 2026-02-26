@@ -9,8 +9,8 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import TimerModal from "../../components/TimerModal";
 import EmojiIcon from "../../components/EmojiIcon";
+import TimerModal from "../../components/TimerModal";
 import { useNavigationData } from "../../contexts/NavigationContext";
 import useRecentActivities from "../../hooks/useRecentActivities";
 import useSchedules from "../../hooks/useSchedules";
@@ -264,10 +264,15 @@ export default function CaregiverDashboard({ navigation }) {
           <Text style={styles.subtitle}>Ready to start your day with MyDayPal?</Text>
           
           <View style={styles.mainActions}>
-      <TouchableOpacity
+          <TouchableOpacity
               style={[styles.mainButton, styles.newScheduleBtn]}
-        onPress={() => navigation.navigate("ScheduleBuilder")}
-      >
+              onPress={() =>
+                navigation.navigate("ScheduleBuilder", {
+                  mode: "new",
+                  resetKey: Date.now(),
+                })
+              }
+            >
               <Text style={styles.mainButtonIcon}>➕</Text>
               <Text style={styles.mainButtonText}>New Schedule</Text>
             </TouchableOpacity>

@@ -25,7 +25,7 @@ export default function ScheduleBuilder() {
   const { createSchedule, updateSchedule, deleteSchedule, getScheduleById, canEditSchedule } = useSchedules();
   const { navigationData, setRoutineData, clearNavigationData } = useNavigationData();
   const route = useRoute();
-  const { routine, isEditing, scheduleId: existingScheduleId, existingSchedule, routineName } = route.params || {};
+  const { routine, isEditing, scheduleId: existingScheduleId, existingSchedule, routineName, mode, resetKey } = route.params || {};
   
   // Use context data if available, otherwise fall back to route params
   const currentRoutine = navigationData?.routine || routine;
@@ -63,6 +63,23 @@ export default function ScheduleBuilder() {
   const [recordingUri, setRecordingUri] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const recordingRef = useRef(null); // single source of truth for active recording
+
+  // Handle explicit "New Schedule" navigation requests (e.g., from dashboards)
+  useEffect(() => {
+    if (mode === "new" && resetKey) {
+      console.log("ScheduleBuilder resetting for New Schedule action");
+      
+      // Clear any previous navigation context / editing state
+      clearNavigationData();
+      
+      // Reset local builder state to represent a brand new schedule
+      setScheduleId(null);
+      setIsInitialized(false);
+      setSelectedStep(null);
+      setScheduleName("Morning");
+      setSteps([]);
+    }
+  }, [mode, resetKey, clearNavigationData]);
 
   // Load schedule data from Firebase when editing existing schedule
   useEffect(() => {

@@ -70,7 +70,16 @@ export default function ChildMode() {
       soundRef.current = sound;
       await sound.playAsync();
     } catch (error) {
-      console.error("Error playing audio note:", error);
+      // AbortError is expected when playback is interrupted; avoid noisy error logs
+      if (
+        error?.name === "AbortError" ||
+        (typeof error?.message === "string" &&
+          error.message.includes("interrupted by a call to pause"))
+      ) {
+        console.log("Audio note playback was interrupted:", error?.message || error);
+      } else {
+        console.error("Error playing audio note:", error);
+      }
     }
   };
 
@@ -222,7 +231,6 @@ export default function ChildMode() {
     }));
   };
 
-
   if (userLoading || schedulesLoading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -233,6 +241,12 @@ export default function ChildMode() {
       </SafeAreaView>
     );
   }
+
+  // Determine the current activity and its color (for theming the activity screen)
+  const currentActivity =
+    activeSchedule?.predefinedSteps &&
+    activeSchedule.predefinedSteps[currentActivityIndex];
+  const currentActivityColor = currentActivity?.colorTag || "#FF6B6B";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -283,7 +297,12 @@ export default function ChildMode() {
             animationType="slide"
             transparent={false}
           >
-            <SafeAreaView style={styles.modalContainer}>
+            <SafeAreaView
+              style={[
+                styles.modalContainer,
+                { backgroundColor: currentActivityColor },
+              ]}
+            >
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{activeSchedule.title}</Text>
                 <TouchableOpacity onPress={stopSchedule} style={styles.closeButton}>

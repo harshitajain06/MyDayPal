@@ -102,10 +102,8 @@ const ChildTabs = () => {
           backgroundColor: Colors[colorScheme ?? "light"].background,
         },
         tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          if (route.name === "ChildMode") {
-            iconName = focused ? "child" : "child-outline";
-          }
+          // Use a valid Ionicons name for the child tab
+          const iconName = focused ? "happy" : "happy-outline";
           return <Ionicons name={iconName} size={size} color={color} />;
         },
       })}

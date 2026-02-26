@@ -50,6 +50,10 @@ const EMOJI_TO_ICON_MAP = {
   '✅': { name: 'check-circle', type: 'material', color: '#32CD32' }, // Lime green
   '➕': { name: 'add', type: 'material', color: '#20B2AA' }, // Teal
   '📊': { name: 'bar-chart', type: 'material', color: '#9370DB' }, // Medium purple
+
+  // Voice / audio indicators
+  '💬': { name: 'chat-bubble', type: 'material', color: '#1976D2' }, // Blue chat bubble
+  '🔊': { name: 'volume-up', type: 'material', color: '#FF8C00' }, // Orange speaker
 };
 
 /**
