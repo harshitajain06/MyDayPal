@@ -103,14 +103,13 @@ const ChildTabs = () => {
         },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-           if (route.name === "ChildMode") {
+          if (route.name === "ChildMode") {
             iconName = focused ? "child" : "child-outline";
-          } 
+          }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
       })}
     >
-      
       <Tab.Screen name="ChildMode" component={ChildMode} />
     </Tab.Navigator>
   );

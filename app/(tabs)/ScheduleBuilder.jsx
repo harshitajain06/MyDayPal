@@ -1,5 +1,8 @@
 import { useRoute } from "@react-navigation/native";
-import React, { useEffect, useState } from "react";
+import { Audio } from "expo-av";
+import * as DocumentPicker from "expo-document-picker";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,6 +15,7 @@ import {
   View
 } from "react-native";
 import EmojiIcon from "../../components/EmojiIcon";
+import { auth, storage } from "../../config/firebase";
 import { useNavigationData } from "../../contexts/NavigationContext";
 import useSchedules from "../../hooks/useSchedules";
 import useUser from "../../hooks/useUser";
@@ -44,6 +48,7 @@ export default function ScheduleBuilder() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeleteAudioModal, setShowDeleteAudioModal] = useState(false);
   const [selectedStep, setSelectedStep] = useState(null);
   const [newStepName, setNewStepName] = useState("");
   const [newStepDuration, setNewStepDuration] = useState("2");
@@ -54,6 +59,10 @@ export default function ScheduleBuilder() {
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [canEdit, setCanEdit] = useState(true);
   const [isReloading, setIsReloading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingUri, setRecordingUri] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const recordingRef = useRef(null); // single source of truth for active recording
 
   // Load schedule data from Firebase when editing existing schedule
   useEffect(() => {
@@ -67,7 +76,8 @@ export default function ScheduleBuilder() {
           if (scheduleData) {
             console.log("Loaded schedule data:", scheduleData);
             setScheduleName(scheduleData.name || "Morning");
-            setSteps(Array.isArray(scheduleData.steps) ? scheduleData.steps : []);
+            const loadedSteps = Array.isArray(scheduleData.steps) ? scheduleData.steps : [];
+            setSteps(normalizeSteps(loadedSteps));
             setScheduleId(existingScheduleId);
             
             // Check if user can edit this schedule
@@ -123,7 +133,8 @@ export default function ScheduleBuilder() {
         // Use data from navigation context
         console.log("Using schedule data from navigation context:", currentExistingSchedule);
         setScheduleName(currentExistingSchedule.name || "Morning");
-        setSteps(Array.isArray(currentExistingSchedule.steps) ? currentExistingSchedule.steps : []);
+        const contextSteps = Array.isArray(currentExistingSchedule.steps) ? currentExistingSchedule.steps : [];
+        setSteps(normalizeSteps(contextSteps));
         if (currentExistingSchedule.id) {
           setScheduleId(currentExistingSchedule.id);
         }
@@ -137,7 +148,8 @@ export default function ScheduleBuilder() {
         console.log("Using predefined steps from routine:", currentRoutine);
         console.log("User role:", userData?.role, "- Can create new schedule from routine:", true);
         setScheduleName(currentRoutine.scheduleName || currentRoutine.title || "Morning");
-        setSteps(Array.isArray(currentRoutine.predefinedSteps) ? currentRoutine.predefinedSteps : []);
+        const routineSteps = Array.isArray(currentRoutine.predefinedSteps) ? currentRoutine.predefinedSteps : [];
+        setSteps(normalizeSteps(routineSteps));
         setCanEdit(true); // New schedules can always be edited
       } else {
         // Default steps for new schedule
@@ -180,6 +192,9 @@ export default function ScheduleBuilder() {
     }
   }, [steps]);
 
+  // NOTE: We no longer auto-stop recordings when switching steps to avoid
+  // double-unloading issues. The user explicitly controls start/stop.
+
   // Update state when navigation data changes
   useEffect(() => {
     if (navigationData) {
@@ -198,7 +213,7 @@ export default function ScheduleBuilder() {
         // Set steps from predefined steps or existing steps
         const newSteps = routine.predefinedSteps || routine.steps || [];
         if (Array.isArray(newSteps) && newSteps.length > 0) {
-          setSteps(newSteps);
+          setSteps(normalizeSteps(newSteps));
           
           // Set the first step as selected if there are steps and no current selection
           if (!selectedStep) {
@@ -229,7 +244,8 @@ export default function ScheduleBuilder() {
           const scheduleData = await getScheduleById(scheduleId);
           if (scheduleData) {
             console.log("Reloaded schedule data:", scheduleData);
-            setSteps(Array.isArray(scheduleData.steps) ? scheduleData.steps : []);
+            const reloadedSteps = Array.isArray(scheduleData.steps) ? scheduleData.steps : [];
+            setSteps(normalizeSteps(reloadedSteps));
             setScheduleName(scheduleData.name || "Morning");
           }
         } catch (error) {
@@ -258,6 +274,188 @@ export default function ScheduleBuilder() {
     "🍎", "🚿", "🧼", "👟", "📱", "🍽️", "🧸", "🎯", "🎪", "🌈", "🔍", "💡"
   ];
 
+  // Helper function to ensure steps have default colorTag and voicePrompt
+  const normalizeSteps = (stepsArray) => {
+    const colors = ["#FF6B6B", "#4ECDC4", "#95E1D3", "#FFE66D", "#A8E6CF"];
+    return stepsArray.map((step, index) => ({
+      ...step,
+      colorTag: step.colorTag || colors[index % colors.length],
+      voicePrompt: step.voicePrompt || `Time for ${step.name}! Come on, let's go!`,
+      audioNote: step.audioNote || null
+    }));
+  };
+
+  // Request audio permissions
+  useEffect(() => {
+    (async () => {
+      try {
+        await Audio.requestPermissionsAsync();
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: true,
+          playsInSilentModeIOS: true,
+        });
+      } catch (err) {
+        console.error("Failed to set up audio:", err);
+      }
+    })();
+  }, []);
+
+  // Cleanup recording on unmount - guard against double unload
+  useEffect(() => {
+    return () => {
+      const activeRecording = recordingRef.current;
+      if (activeRecording) {
+        activeRecording.stopAndUnloadAsync().catch(() => {
+          // It's safe to ignore errors here; recording may already be unloaded
+          console.log("Recording already unloaded on unmount");
+        });
+      }
+    };
+  }, []);
+
+  const startRecording = async () => {
+    try {
+      if (!selectedStep) {
+        Alert.alert("Error", "Please select a step first");
+        return;
+      }
+
+      const permission = await Audio.requestPermissionsAsync();
+      if (permission.status !== "granted") {
+        Alert.alert("Permission Required", "Please grant microphone permission to record audio");
+        return;
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      
+      recordingRef.current = recording;
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Failed to start recording:", err);
+      Alert.alert("Error", "Failed to start recording. Please try again.");
+    }
+  };
+
+  const stopRecording = async () => {
+    const activeRecording = recordingRef.current;
+    if (!activeRecording) return;
+
+    try {
+      setIsRecording(false);
+      await activeRecording.stopAndUnloadAsync();
+      const uri = activeRecording.getURI();
+      setRecordingUri(uri);
+      recordingRef.current = null;
+
+      // Automatically upload the recording
+      if (uri) {
+        await uploadRecordedAudio(uri);
+      }
+    } catch (err) {
+      console.error("Failed to stop recording:", err);
+      Alert.alert("Error", "Failed to stop recording");
+    }
+  };
+
+  const uploadRecordedAudio = async (uri) => {
+    if (!selectedStep || !uri) return;
+
+    setIsUploading(true);
+    try {
+      const audioUri = await uploadAudioToFirebase(uri, `recording_${Date.now()}.m4a`);
+      if (audioUri) {
+        updateSelectedStep('audioNote', audioUri);
+        setRecordingUri(null);
+        Alert.alert("Success", "Audio note recorded and saved!");
+      }
+    } catch (error) {
+      console.error("Error uploading recorded audio:", error);
+      Alert.alert("Error", "Failed to upload audio. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const pickAudioFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'audio/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const fileUri = result.assets[0].uri;
+        setIsUploading(true);
+        
+        try {
+          const fileName = result.assets[0].name || `audio_${Date.now()}.${result.assets[0].mimeType?.split('/')[1] || 'm4a'}`;
+          const audioUri = await uploadAudioToFirebase(fileUri, fileName);
+          
+          if (audioUri) {
+            updateSelectedStep('audioNote', audioUri);
+            Alert.alert("Success", "Audio file uploaded successfully!");
+          }
+        } catch (error) {
+          console.error("Error uploading audio file:", error);
+          Alert.alert("Error", "Failed to upload audio file. Please try again.");
+        } finally {
+          setIsUploading(false);
+        }
+      }
+    } catch (err) {
+      console.error("Error picking audio file:", err);
+      Alert.alert("Error", "Failed to pick audio file. Please try again.");
+    }
+  };
+
+  const uploadAudioToFirebase = async (localUri, fileName) => {
+    try {
+      if (!auth.currentUser) {
+        throw new Error("User not authenticated");
+      }
+
+      // Fetch the file as a blob
+      const response = await fetch(localUri);
+      const blob = await response.blob();
+
+      // Create a unique path for the audio file
+      const audioRef = ref(storage, `audio-notes/${auth.currentUser.uid}/${scheduleId || 'temp'}/${selectedStep.id}/${fileName}`);
+
+      // Upload the file
+      await uploadBytes(audioRef, blob);
+
+      // Get the download URL
+      const downloadURL = await getDownloadURL(audioRef);
+      return downloadURL;
+    } catch (error) {
+      console.error("Error uploading to Firebase:", error);
+      throw error;
+    }
+  };
+
+  const deleteAudioNote = () => {
+    // Open confirmation modal; actual delete happens on confirm
+    setShowDeleteAudioModal(true);
+  };
+
+  const confirmDeleteAudioNote = () => {
+    // Remove audio note from the selected step
+    updateSelectedStep('audioNote', null);
+    setRecordingUri(null);
+    setShowDeleteAudioModal(false);
+  };
+
+  const cancelDeleteAudioNote = () => {
+    setShowDeleteAudioModal(false);
+  };
+
   const addStep = async () => {
     if (newStepName.trim() === "") return;
     
@@ -272,7 +470,10 @@ export default function ScheduleBuilder() {
       icon: "⭐",
       duration: `${newStepDuration.padStart(2, '0')}:00`,
       stepNumber: (steps || []).length + 1,
-      notes: newStepNotes
+      notes: newStepNotes,
+      colorTag: "#FF6B6B", // Default to first color
+      voicePrompt: `Time for ${newStepName}! Come on, let's go!`,
+      audioNote: null
     };
     
     const updatedSteps = [...(steps || []), newStep];
@@ -566,12 +767,16 @@ export default function ScheduleBuilder() {
       </View>
 
       <ScrollView style={styles.scrollView}>
-        {/* Read-only indicator - only show for teachers viewing caregiver-created routines */}
-        {!canEdit && userData?.role === 'teacher' && (
+        {/* Read-only indicator - show for teachers and children viewing caregiver-created routines */}
+        {!canEdit && (userData?.role === 'teacher' || userData?.role === 'child') && (
           <View style={styles.readOnlyBanner}>
             <View style={styles.readOnlyBannerContent}>
               <EmojiIcon emoji="📖" size={12} color="#856404" />
-              <Text style={styles.readOnlyText}> Read-only mode - You can view this caregiver-created routine but cannot edit it</Text>
+              <Text style={styles.readOnlyText}>
+                {userData?.role === 'child' 
+                  ? ' Read-only mode - You can view this schedule but cannot edit it'
+                  : ' Read-only mode - You can view this caregiver-created routine but cannot edit it'}
+              </Text>
             </View>
           </View>
         )}
@@ -652,6 +857,12 @@ export default function ScheduleBuilder() {
                   onPress={canEdit ? () => setSelectedStep(step) : undefined}
                 >
                   <Text style={styles.dragHandle}>⋮⋮</Text>
+                  <View
+                    style={[
+                      styles.stepColorTag,
+                      { backgroundColor: step.colorTag || "#FF6B6B" },
+                    ]}
+                  />
                   <View style={styles.stepIconContainer}>
                     <EmojiIcon emoji={step.icon} size={14} />
                   </View>
@@ -795,19 +1006,124 @@ export default function ScheduleBuilder() {
               </View>
             </View>
 
-            {/* Audio Prompt */}
+            {/* Color Tag */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Audio Prompt</Text>
+              <Text style={styles.inputLabel}>Color Tag</Text>
+              <View style={styles.colorGrid}>
+                {[
+                  { name: "Red", value: "#FF6B6B" },
+                  { name: "Blue", value: "#4ECDC4" },
+                  { name: "Green", value: "#95E1D3" },
+                  { name: "Yellow", value: "#FFE66D" },
+                  { name: "Purple", value: "#A8E6CF" }
+                ].map((color) => (
+                  <TouchableOpacity
+                    key={color.value}
+                    style={[
+                      styles.colorButton,
+                      selectedStep.colorTag === color.value && styles.selectedColorButton,
+                      { backgroundColor: color.value }
+                    ]}
+                    onPress={canEdit ? () => updateSelectedStep('colorTag', color.value) : undefined}
+                  >
+                    {selectedStep.colorTag === color.value && (
+                      <Text style={styles.colorCheckmark}>✓</Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Caregiver Voice Prompt */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Caregiver Voice Prompt</Text>
+              <TextInput
+                style={[styles.voicePromptInput, !canEdit && styles.readOnlyInput]}
+                value={selectedStep.voicePrompt || ''}
+                onChangeText={canEdit ? (value) => updateSelectedStep('voicePrompt', value) : undefined}
+                placeholder="Time for this activity! Come on, let's go play now."
+                placeholderTextColor="#999"
+                editable={canEdit}
+                multiline
+                numberOfLines={2}
+              />
+              <Text style={styles.inputHint}>
+                This encouraging message will be spoken when the activity starts
+              </Text>
+            </View>
+
+            {/* Audio Note */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Audio Note (Optional)</Text>
               <View style={styles.audioButtons}>
-                <TouchableOpacity style={styles.audioButton}>
-                  <EmojiIcon emoji="📤" size={10} />
-                  <Text style={styles.audioButtonText}>Upload Audio</Text>
+                <TouchableOpacity 
+                  style={[styles.audioButton, (isUploading || isRecording) && styles.disabledButton]}
+                  onPress={canEdit && !isUploading && !isRecording ? pickAudioFile : undefined}
+                  disabled={!canEdit || isUploading || isRecording}
+                >
+                  {isUploading ? (
+                    <ActivityIndicator size="small" color="#2c3e50" />
+                  ) : (
+                    <EmojiIcon emoji="📤" size={10} />
+                  )}
+                  <Text style={styles.audioButtonText}>
+                    {isUploading ? "Uploading..." : "Upload Audio"}
+                  </Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.audioButton}>
-                  <EmojiIcon emoji="🎤" size={10} />
-                  <Text style={styles.audioButtonText}>Record</Text>
+                <TouchableOpacity 
+                  style={[
+                    styles.audioButton,
+                    isRecording && styles.recordingButton,
+                    isUploading && styles.disabledButton
+                  ]}
+                  onPress={canEdit && !isUploading ? (isRecording ? stopRecording : startRecording) : undefined}
+                  disabled={!canEdit || isUploading}
+                >
+                  {isRecording ? (
+                    <View style={styles.recordingIndicator} />
+                  ) : (
+                    <EmojiIcon emoji="🎤" size={10} />
+                  )}
+                  <Text style={styles.audioButtonText}>
+                    {isRecording ? "Stop Recording" : "Record"}
+                  </Text>
                 </TouchableOpacity>
               </View>
+              {(selectedStep.audioNote || recordingUri) && (
+                <View style={styles.audioNoteContainer}>
+                  <View style={styles.audioNoteIndicator}>
+                    <EmojiIcon emoji="🔊" size={12} />
+                    <Text style={styles.audioNoteText}>
+                      {recordingUri ? "Recording ready to save" : "Audio note attached"}
+                    </Text>
+                  </View>
+                  <View style={styles.audioNoteActions}>
+                    {recordingUri && !selectedStep.audioNote && (
+                      <TouchableOpacity
+                        style={styles.cancelRecordingButton}
+                        onPress={canEdit ? () => {
+                          setRecordingUri(null);
+                          Alert.alert("Info", "Recording discarded. You can record again.");
+                        } : undefined}
+                        disabled={!canEdit}
+                      >
+                        <EmojiIcon emoji="❌" size={12} />
+                        <Text style={styles.cancelRecordingText}>Discard</Text>
+                      </TouchableOpacity>
+                    )}
+                    {selectedStep.audioNote && (
+                      <TouchableOpacity
+                        style={styles.deleteAudioButton}
+                        onPress={canEdit ? deleteAudioNote : undefined}
+                        disabled={!canEdit}
+                      >
+                        <EmojiIcon emoji="🗑️" size={12} />
+                        <Text style={styles.deleteAudioText}>Remove</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              )}
             </View>
 
             {/* Notes */}
@@ -880,6 +1196,42 @@ export default function ScheduleBuilder() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Delete Audio Note Modal */}
+      {showDeleteAudioModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Remove Audio Note</Text>
+              <TouchableOpacity 
+                style={styles.modalCloseButton}
+                onPress={cancelDeleteAudioNote}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalMessage}>
+                Are you sure you want to remove this audio note from this activity?
+              </Text>
+            </View>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={cancelDeleteAudioNote}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalDeleteButton]}
+                onPress={confirmDeleteAudioNote}
+              >
+                <Text style={styles.modalDeleteText}>Remove</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
 
       {/* Update Confirmation Modal */}
       {showUpdateModal && (
@@ -1138,6 +1490,11 @@ const styles = StyleSheet.create({
     color: "#6c757d",
     marginRight: 4,
   },
+  stepColorTag: {
+    width: 4,
+    borderRadius: 2,
+    marginRight: 6,
+  },
   stepIconContainer: {
     marginRight: 6,
     justifyContent: "center",
@@ -1272,6 +1629,113 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "600",
     color: "#2c3e50",
+  },
+  colorGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 4,
+  },
+  colorButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#dee2e6",
+  },
+  selectedColorButton: {
+    borderColor: "#2c3e50",
+    borderWidth: 3,
+  },
+  colorCheckmark: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  voicePromptInput: {
+    backgroundColor: "#f8f9fa",
+    borderWidth: 1,
+    borderColor: "#dee2e6",
+    padding: 6,
+    borderRadius: 4,
+    fontSize: 11,
+    textAlignVertical: "top",
+    minHeight: 50,
+    marginBottom: 4,
+  },
+  inputHint: {
+    fontSize: 9,
+    color: "#6c757d",
+    fontStyle: "italic",
+  },
+  audioNoteIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+    padding: 6,
+    backgroundColor: "#e3f2fd",
+    borderRadius: 4,
+  },
+  audioNoteContainer: {
+    marginTop: 8,
+  },
+  audioNoteIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 8,
+    backgroundColor: "#e3f2fd",
+    borderRadius: 6,
+    marginBottom: 4,
+  },
+  audioNoteText: {
+    fontSize: 10,
+    color: "#1976d2",
+    marginLeft: 4,
+    fontWeight: "500",
+  },
+  audioNoteActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  deleteAudioButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 6,
+    backgroundColor: "#ffebee",
+    borderRadius: 6,
+    marginTop: 4,
+  },
+  deleteAudioText: {
+    fontSize: 10,
+    color: "#c62828",
+    marginLeft: 4,
+    fontWeight: "500",
+  },
+  cancelRecordingButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 6,
+    backgroundColor: "#fff3e0",
+    borderRadius: 6,
+    marginTop: 4,
+  },
+  cancelRecordingText: {
+    fontSize: 10,
+    color: "#e65100",
+    marginLeft: 4,
+    fontWeight: "500",
+  },
+  recordingButton: {
+    backgroundColor: "#ffebee",
+    borderColor: "#c62828",
+  },
+  recordingIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#c62828",
+    marginRight: 4,
   },
   notesInput: {
     backgroundColor: "#f8f9fa",
