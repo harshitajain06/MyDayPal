@@ -462,14 +462,14 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingVertical: Platform.OS === 'web' ? 20 : 5,
+    paddingVertical: Platform.OS === 'web' ? 10 : 5,
     paddingHorizontal: Platform.OS === 'web' ? 20 : 8,
     minHeight: Platform.OS === 'web' ? '100vh' : undefined,
   },
   card: {
     backgroundColor: '#fff',
     borderRadius: Platform.OS === 'web' ? 16 : 6,
-    padding: Platform.OS === 'web' ? 32 : 10,
+    padding: Platform.OS === 'web' ? 24 : 10,
     maxWidth: Platform.OS === 'web' ? 700 : 400,
     width: '100%',
     alignSelf: 'center',
@@ -479,21 +479,21 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: Platform.OS === 'web' ? 4 : 2 },
     elevation: 3,
   },
-  logoContainer: { alignItems: 'center', marginBottom: Platform.OS === 'web' ? 12 : 8 },
+  logoContainer: { alignItems: 'center', marginBottom: Platform.OS === 'web' ? 8 : 8 },
   logo: { 
-    width: Platform.OS === 'web' ? 80 : 50, 
-    height: Platform.OS === 'web' ? 80 : 50 
+    width: Platform.OS === 'web' ? 60 : 50, 
+    height: Platform.OS === 'web' ? 60 : 50 
   },
   title: { 
-    fontSize: Platform.OS === 'web' ? 28 : 14, 
+    fontSize: Platform.OS === 'web' ? 24 : 14, 
     fontWeight: 'bold', 
     textAlign: 'center', 
-    marginBottom: Platform.OS === 'web' ? 16 : 6 
+    marginBottom: Platform.OS === 'web' ? 12 : 6 
   },
   tabContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: Platform.OS === 'web' ? 20 : 8,
+    marginBottom: Platform.OS === 'web' ? 16 : 8,
     backgroundColor: '#f0f0f0',
     borderRadius: Platform.OS === 'web' ? 12 : 6,
     overflow: 'hidden',
@@ -501,65 +501,65 @@ const styles = StyleSheet.create({
   },
   tab: { 
     flex: 1, 
-    paddingVertical: Platform.OS === 'web' ? 12 : 6, 
+    paddingVertical: Platform.OS === 'web' ? 10 : 6, 
     alignItems: 'center' 
   },
   activeTabBackground: { backgroundColor: '#e6f0ff' },
   tabText: { 
-    fontSize: Platform.OS === 'web' ? 16 : 10, 
+    fontSize: Platform.OS === 'web' ? 15 : 10, 
     color: '#6c757d', 
     fontWeight: '600' 
   },
   activeTabText: { color: '#007bff' },
   label: { 
-    marginBottom: Platform.OS === 'web' ? 6 : 2, 
+    marginBottom: Platform.OS === 'web' ? 4 : 2, 
     fontWeight: '500', 
     color: '#212529', 
-    fontSize: Platform.OS === 'web' ? 15 : 10 
+    fontSize: Platform.OS === 'web' ? 14 : 10 
   },
-  form: { marginBottom: Platform.OS === 'web' ? 12 : 6 },
+  form: { marginBottom: Platform.OS === 'web' ? 8 : 6 },
   input: {
     backgroundColor: '#fff',
-    padding: Platform.OS === 'web' ? 12 : 6,
+    padding: Platform.OS === 'web' ? 10 : 6,
     borderRadius: Platform.OS === 'web' ? 8 : 4,
-    marginBottom: Platform.OS === 'web' ? 14 : 6,
+    marginBottom: Platform.OS === 'web' ? 10 : 6,
     borderWidth: 1,
     borderColor: '#ced4da',
     color: '#212529',
-    fontSize: Platform.OS === 'web' ? 15 : 11,
-    minHeight: Platform.OS === 'web' ? 44 : undefined,
+    fontSize: Platform.OS === 'web' ? 14 : 11,
+    minHeight: Platform.OS === 'web' ? 40 : undefined,
   },
   button: {
     backgroundColor: '#007bff',
-    padding: Platform.OS === 'web' ? 14 : 6,
+    padding: Platform.OS === 'web' ? 12 : 6,
     borderRadius: Platform.OS === 'web' ? 8 : 4,
     alignItems: 'center',
-    marginTop: Platform.OS === 'web' ? 6 : 4,
-    minHeight: Platform.OS === 'web' ? 44 : undefined,
+    marginTop: Platform.OS === 'web' ? 4 : 4,
+    minHeight: Platform.OS === 'web' ? 40 : undefined,
   },
   buttonText: { 
     color: '#fff', 
     fontWeight: 'bold', 
-    fontSize: Platform.OS === 'web' ? 16 : 10 
+    fontSize: Platform.OS === 'web' ? 15 : 10 
   },
   roleContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: Platform.OS === 'web' ? 14 : 4,
+    marginBottom: Platform.OS === 'web' ? 10 : 4,
     gap: Platform.OS === 'web' ? 12 : 6,
   },
   roleOption: {
     flex: 1,
-    padding: Platform.OS === 'web' ? 12 : 6,
+    padding: Platform.OS === 'web' ? 10 : 6,
     borderWidth: 1,
     borderColor: '#ced4da',
     borderRadius: Platform.OS === 'web' ? 8 : 4,
     alignItems: 'center',
-    minHeight: Platform.OS === 'web' ? 44 : undefined,
+    minHeight: Platform.OS === 'web' ? 40 : undefined,
   },
   selectedRole: { backgroundColor: '#e6f0ff', borderColor: '#007bff' },
   roleText: { 
-    fontSize: Platform.OS === 'web' ? 14 : 9, 
+    fontSize: Platform.OS === 'web' ? 13 : 9, 
     fontWeight: '500' 
   },
   // Modal styles
